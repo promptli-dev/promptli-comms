@@ -12,7 +12,7 @@ SDKs, CLI and the agent-plugin gateway for **Promptli Comms**: email, SMS and ph
 ```python
 from promptli import Promptli
 
-with Promptli() as p:                      # PROMPTLI_API_KEY from the environment
+with Promptli() as p:  # PROMPTLI_API_KEY from the environment
     glow = p.identity("glow")
     glow.send_email("jane@example.com", "Your booking", text="Confirmed for 3pm")
     glow.provision_phone_number(region="NY")
@@ -23,12 +23,14 @@ with Promptli() as p:                      # PROMPTLI_API_KEY from the environme
 import asyncio
 from promptli import AsyncPromptli
 
+
 async def main():
     async with AsyncPromptli() as p:
-        async with p.identity("glow").link(instance="laptop") as link:   # outbound WebSocket, no public URL
+        async with p.identity("glow").link(instance="laptop") as link:  # outbound WebSocket, no public URL
             async for event in link:
                 print(event["type"], event["data"])
                 await link.ack(event)
+
 
 asyncio.run(main())
 ```
