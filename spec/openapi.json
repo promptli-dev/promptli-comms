@@ -318,6 +318,255 @@
         "title": "AvailableNumber",
         "type": "object"
       },
+      "Call": {
+        "properties": {
+          "answered_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answered At"
+          },
+          "answered_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Answering-machine detection result for outbound calls",
+            "title": "Answered By"
+          },
+          "contact": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Ref"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "direction": {
+            "enum": [
+              "inbound",
+              "outbound"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "duration_sec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Sec"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "ended_by": {
+            "anyOf": [
+              {
+                "enum": [
+                  "caller",
+                  "agent",
+                  "system"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended By"
+          },
+          "env": {
+            "enum": [
+              "live",
+              "test"
+            ],
+            "title": "Env",
+            "type": "string"
+          },
+          "from": {
+            "title": "From",
+            "type": "string"
+          },
+          "hangup_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hangup Reason"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "identity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Ref"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mode": {
+            "enum": [
+              "agent",
+              "forward",
+              "voicemail",
+              "rejected"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "answered_by_agent | voicemail | voicemail_left | forwarded | no_agent | machine | transferred | agent_disconnected | blocked | auto_rejected | no_answer | busy | failed",
+            "title": "Outcome"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "recording": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Recording"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "started_at": {
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "ringing",
+              "in_progress",
+              "completed",
+              "busy",
+              "no_answer",
+              "failed",
+              "canceled",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          },
+          "units": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Voice units billed (1 per minute, 6-second blocks)",
+            "title": "Units"
+          }
+        },
+        "required": [
+          "id",
+          "identity",
+          "direction",
+          "from",
+          "to",
+          "status",
+          "mode",
+          "outcome",
+          "hangup_reason",
+          "ended_by",
+          "answered_by",
+          "contact",
+          "reason",
+          "recording",
+          "units",
+          "started_at",
+          "answered_at",
+          "ended_at",
+          "duration_sec",
+          "env"
+        ],
+        "title": "Call",
+        "type": "object"
+      },
+      "CallPage": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Call"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "CallPage",
+        "type": "object"
+      },
       "Capabilities": {
         "properties": {
           "mms": {
@@ -2215,6 +2464,48 @@
         "title": "IdentityUpsertResult",
         "type": "object"
       },
+      "InboundCall": {
+        "properties": {
+          "from_number": {
+            "default": "+15550109999",
+            "description": "The simulated caller's number",
+            "title": "From Number",
+            "type": "string"
+          },
+          "script": {
+            "description": "What the caller does, in order: {\"say\": text}, {\"wait_ms\": n}, {\"wait_for_agent\": true}, {\"interrupt\": text} (talk over the agent), {\"dtmf\": \"12#\"}, {\"hangup\": true}",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Script",
+            "type": "array"
+          },
+          "to_identity": {
+            "description": "Handle or idn_ id of the identity being called",
+            "title": "To Identity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "to_identity"
+        ],
+        "title": "InboundCall",
+        "type": "object"
+      },
+      "InboundCallResult": {
+        "properties": {
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id"
+        ],
+        "title": "InboundCallResult",
+        "type": "object"
+      },
       "InboundEmail": {
         "properties": {
           "attachment_text": {
@@ -3112,6 +3403,88 @@
         "title": "PhoneNumber",
         "type": "object"
       },
+      "PlaceCall": {
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Extra context for the agent",
+            "title": "Context"
+          },
+          "opening": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Spoken as soon as the call is answered, before the agent",
+            "title": "Opening"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the agent is calling (shown to it)",
+            "title": "Reason"
+          },
+          "sandbox_script": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Test mode only: what the simulated callee does (see /sandbox/calls/inbound)",
+            "title": "Sandbox Script"
+          },
+          "to": {
+            "description": "E.164 number to call",
+            "title": "To",
+            "type": "string"
+          },
+          "voicemail_message": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Left on an answering machine; without it we hang up",
+            "title": "Voicemail Message"
+          }
+        },
+        "required": [
+          "to"
+        ],
+        "title": "PlaceCall",
+        "type": "object"
+      },
       "ProvisionNumber": {
         "properties": {
           "area_code": {
@@ -3151,6 +3524,66 @@
           }
         },
         "title": "ProvisionNumber",
+        "type": "object"
+      },
+      "Recording": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "duration_sec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Sec"
+          }
+        },
+        "required": [
+          "duration_sec",
+          "available"
+        ],
+        "title": "Recording",
+        "type": "object"
+      },
+      "Ref": {
+        "properties": {
+          "handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handle"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "Ref",
         "type": "object"
       },
       "ReplyEmail": {
@@ -3242,6 +3675,75 @@
           "data"
         ],
         "title": "SearchTexts",
+        "type": "object"
+      },
+      "Segment": {
+        "properties": {
+          "end_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Ms"
+          },
+          "interrupted": {
+            "title": "Interrupted",
+            "type": "boolean"
+          },
+          "party": {
+            "enum": [
+              "caller",
+              "agent",
+              "system"
+            ],
+            "title": "Party",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "start_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Ms"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Id"
+          }
+        },
+        "required": [
+          "seq",
+          "party",
+          "text",
+          "turn_id",
+          "start_ms",
+          "end_ms",
+          "interrupted"
+        ],
+        "title": "Segment",
         "type": "object"
       },
       "SendEmail": {
@@ -4088,6 +4590,60 @@
         "title": "TimelineItem",
         "type": "object"
       },
+      "Transcript": {
+        "properties": {
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/Segment"
+            },
+            "title": "Segments",
+            "type": "array"
+          }
+        },
+        "required": [
+          "call_id",
+          "segments"
+        ],
+        "title": "Transcript",
+        "type": "object"
+      },
+      "TranscriptHit": {
+        "properties": {
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "segment": {
+            "$ref": "#/components/schemas/Segment"
+          }
+        },
+        "required": [
+          "call_id",
+          "segment"
+        ],
+        "title": "TranscriptHit",
+        "type": "object"
+      },
+      "TranscriptSearch": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptHit"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "TranscriptSearch",
+        "type": "object"
+      },
       "UpdateContact": {
         "properties": {
           "company": {
@@ -4381,6 +4937,176 @@
           "code"
         ],
         "title": "VerifyRequest",
+        "type": "object"
+      },
+      "Voice": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "provider": {
+            "const": "cartesia",
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "language",
+          "gender",
+          "provider"
+        ],
+        "title": "Voice",
+        "type": "object"
+      },
+      "VoiceList": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Voice"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "VoiceList",
+        "type": "object"
+      },
+      "VoiceSettings": {
+        "properties": {
+          "agent_unreachable": {
+            "description": "When no agent is connected or none accepts the call within a few seconds",
+            "enum": [
+              "voicemail",
+              "reject"
+            ],
+            "title": "Agent Unreachable",
+            "type": "string"
+          },
+          "fillers": {
+            "description": "Short acknowledgments while your agent thinks",
+            "title": "Fillers",
+            "type": "boolean"
+          },
+          "forward_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forward To"
+          },
+          "greeting": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Voicemail greeting override",
+            "title": "Greeting"
+          },
+          "incoming_action": {
+            "description": "agent = your connected agent answers (Mode C); forward = ring forward_to; auto_reject",
+            "enum": [
+              "agent",
+              "forward",
+              "auto_reject"
+            ],
+            "title": "Incoming Action",
+            "type": "string"
+          },
+          "language": {
+            "default": "en",
+            "title": "Language",
+            "type": "string"
+          },
+          "recording": {
+            "description": "Record calls (a consent announcement plays first). Off by default",
+            "title": "Recording",
+            "type": "boolean"
+          },
+          "speed": {
+            "anyOf": [
+              {
+                "maximum": 1.5,
+                "minimum": 0.6,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed"
+          },
+          "tts_provider": {
+            "const": "cartesia",
+            "default": "cartesia",
+            "title": "Tts Provider",
+            "type": "string"
+          },
+          "voice_id": {
+            "title": "Voice Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "incoming_action",
+          "agent_unreachable",
+          "voice_id",
+          "recording",
+          "fillers"
+        ],
+        "title": "VoiceSettings",
         "type": "object"
       },
       "WebhookState": {
@@ -4705,6 +5431,190 @@
         "summary": "Revoke Api Key",
         "tags": [
           "API Keys"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}": {
+      "get": {
+        "operationId": "getCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Call"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Call",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}/hangup": {
+      "post": {
+        "operationId": "hangupCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Call"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Hangup",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}/recording": {
+      "get": {
+        "operationId": "getCallRecording",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "audio/mpeg": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Recording",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}/transcript": {
+      "get": {
+        "operationId": "getCallTranscript",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transcript"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Transcript",
+        "tags": [
+          "Calls"
         ]
       }
     },
@@ -5933,6 +6843,227 @@
         "summary": "Upsert Identity",
         "tags": [
           "Identities"
+        ]
+      }
+    },
+    "/v1/identities/{identity}/calls": {
+      "get": {
+        "operationId": "listCalls",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "description": "Page size",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Opaque cursor from a previous page's next_cursor",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque cursor from a previous page's next_cursor",
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Calls",
+        "tags": [
+          "Calls"
+        ]
+      },
+      "post": {
+        "description": "Call a phone number. Your connected agent (Agent Link, voice capability) runs the conversation.\n\nIn test mode the callee is simulated (`sandbox_script`) and no real call is made.",
+        "operationId": "placeCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceCall"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Call"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Place Call",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/identities/{identity}/calls/search": {
+      "get": {
+        "operationId": "searchCallTranscripts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptSearch"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Search Calls",
+        "tags": [
+          "Calls"
         ]
       }
     },
@@ -8213,6 +9344,109 @@
         ]
       }
     },
+    "/v1/identities/{identity}/voice": {
+      "get": {
+        "operationId": "getVoiceSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Voice",
+        "tags": [
+          "Calls"
+        ]
+      },
+      "put": {
+        "description": "How calls to this identity are handled, and how it sounds. Replaces all fields.",
+        "operationId": "updateVoiceSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoiceSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Voice",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
     "/v1/link/sessions": {
       "get": {
         "operationId": "listLinkSessions",
@@ -8475,6 +9709,53 @@
         "summary": "Get Number",
         "tags": [
           "Phone Numbers"
+        ]
+      }
+    },
+    "/v1/sandbox/calls/inbound": {
+      "post": {
+        "description": "Simulate a phone call to an identity's sandbox number. The whole call engine runs (turns, fillers,\nbarge-in, voicemail) with a scripted caller instead of a phone; read the result with GET /calls/{id}.",
+        "operationId": "sandboxInboundCall",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InboundCall"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboundCallResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Inbound Call",
+        "tags": [
+          "Sandbox"
         ]
       }
     },
@@ -8912,6 +10193,80 @@
         "summary": "Record Optout",
         "tags": [
           "SMS Opt-Ins"
+        ]
+      }
+    },
+    "/v1/voices": {
+      "get": {
+        "operationId": "listVoices",
+        "parameters": [
+          {
+            "description": "e.g. en, es, fr",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "e.g. en, es, fr",
+              "title": "Language"
+            }
+          },
+          {
+            "description": "Search names and descriptions",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search names and descriptions",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Voices",
+        "tags": [
+          "Calls"
         ]
       }
     },

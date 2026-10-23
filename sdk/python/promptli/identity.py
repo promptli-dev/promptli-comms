@@ -224,6 +224,54 @@ class AsyncIdentity:
         page = await self._t.request("GET", self._p("/texts/conversations"), params={"limit": limit})
         return [m.TextConversation.model_validate(x) for x in page["data"]]
 
+    # ---- calls (voice) --------------------------------------------------------------------------
+    async def place_call(
+        self,
+        to: str,
+        *,
+        reason: str | None = None,
+        opening: str | None = None,
+        context: str | None = None,
+        voicemail_message: str | None = None,
+        sandbox_script: Sequence[dict[str, Any]] | None = None,
+        idempotency_key: str | None = None,
+    ) -> m.Call:
+        """Call a number. Your agent (connected over Agent Link with the voice capability) runs the call.
+
+        `opening` is spoken as soon as the callee answers; `voicemail_message` is left on a machine.
+        In test mode nothing is dialled: `sandbox_script` simulates the callee.
+        """
+        body: dict[str, Any] = {
+            "to": to,
+            "reason": reason,
+            "opening": opening,
+            "context": context,
+            "voicemail_message": voicemail_message,
+        }
+        if sandbox_script is not None:
+            body["sandbox_script"] = list(sandbox_script)
+        return m.Call.model_validate(
+            await self._t.request("POST", self._p("/calls"), json=body, idempotency_key=idempotency_key)
+        )
+
+    async def calls(self, *, limit: int = 25) -> list[m.Call]:
+        page = await self._t.request("GET", self._p("/calls"), params={"limit": limit})
+        return [m.Call.model_validate(x) for x in page["data"]]
+
+    async def search_calls(self, q: str, *, limit: int = 20) -> list[m.TranscriptHit]:
+        res = await self._t.request("GET", self._p("/calls/search"), params={"q": q, "limit": limit})
+        return [m.TranscriptHit.model_validate(x) for x in res["data"]]
+
+    async def voice_settings(self) -> m.VoiceSettings:
+        return m.VoiceSettings.model_validate(await self._t.request("GET", self._p("/voice")))
+
+    async def update_voice_settings(self, **changes: Any) -> m.VoiceSettings:
+        """Change some fields (the rest are kept): incoming_action, forward_to, agent_unreachable, voice_id,
+        language, speed, recording, fillers, greeting."""
+        current = (await self.voice_settings()).model_dump(mode="json")
+        current.update(changes)
+        return m.VoiceSettings.model_validate(await self._t.request("PUT", self._p("/voice"), json=current))
+
     # ---- unified conversations ----------------------------------------------------------------
     async def conversations(self, *, limit: int = 50) -> list[m.ConversationSummary]:
         res = await self._t.request("GET", self._p("/conversations"), params={"limit": limit})

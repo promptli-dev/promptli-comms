@@ -19,6 +19,12 @@
       "status": 413
     },
     {
+      "code": "call_not_active",
+      "description": "The call is not in progress (it ended or never connected).",
+      "retryable": false,
+      "status": 409
+    },
+    {
       "code": "carrier_blocked",
       "description": "The carrier blocked this message.",
       "retryable": false,
@@ -29,6 +35,12 @@
       "description": "The request conflicts with the current state.",
       "retryable": false,
       "status": 409
+    },
+    {
+      "code": "daily_call_limit",
+      "description": "The plan's daily outbound call limit has been reached.",
+      "retryable": true,
+      "status": 429
     },
     {
       "code": "daily_send_limit",
