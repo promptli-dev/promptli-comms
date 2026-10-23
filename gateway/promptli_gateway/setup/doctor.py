@@ -69,9 +69,12 @@ async def doctor(
         try:
             st = await p.identity(cfg.identity).channel_status()
             rep.add("email", st.email.ready, st.email.address or "no mailbox")
-            rep.add("sms", st.sms.ready, f"{st.sms.number or 'no number'} {st.sms.status or ''}".strip())
+            if st.sms.number:
+                rep.add("sms", st.sms.ready, f"{st.sms.number} {st.sms.status or ''}".strip())
+            else:
+                rep.add("sms", True, "no number (optional: add one for SMS and calls)")
             for issue in st.issues:
-                if issue.code != "no_event_delivery":
+                if issue.code not in ("no_event_delivery", "sender_no_number"):
                     rep.add(f"issue:{issue.code}", False, issue.message)
         except PromptliError as e:
             rep.add("channels", False, f"{e.code}: {e.message}")
@@ -79,7 +82,8 @@ async def doctor(
             link = p.identity(cfg.identity).link(instance=f"{cfg.instance_id}-doctor", user_agent="doctor")
             try:
                 await asyncio.wait_for(link.start(), timeout=15)
-                rep.add("agent link", True, f"connected (latest seq {link.hello.get('latest_seq')})")
+                latest = int(link.hello.get("latest_seq") or 0)
+                rep.add("agent link", True, f"connected (latest seq {latest})")
             except (TimeoutError, PromptliError) as e:
                 rep.add("agent link", False, str(e))
             finally:
