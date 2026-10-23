@@ -200,3 +200,29 @@ async def test_guidance_speaks_now_or_shapes_the_next_turn() -> None:
     assert "Private note from your owner" in prompts[0] and "Bhagavad Gita" in prompts[0]
     assert any(f["type"] == "call.text" and f["turn_id"] == "g1" for f in link.sent)
     assert "ask for their email" in prompts[1] and "sounds good" in prompts[1]
+
+
+async def test_unheard_guidance_is_reapplied_and_interrupted_turns_never_apologise() -> None:
+    adapter = SlowAdapter()
+    prompts: list[str] = []
+    original = adapter.run_turn
+
+    def spy(session_key: str, prompt: str, **kw: Any) -> AsyncIterator[TurnChunk]:
+        prompts.append(prompt)
+        return original(session_key, prompt, **kw)
+
+    adapter.run_turn = spy  # type: ignore[method-assign]
+    link = await drive(
+        [
+            INCOMING,
+            {"type": "call.start", "turn_id": "t0", "greet": False},
+            {"type": "call.guidance", "turn_id": "g1", "text": "mention the Hyderabad flat"},
+            {"type": "call.barge_in", "turn_id": "g1", "heard": "hello", "spoken_so_far": ""},
+            {"type": "call.transcript", "turn_id": "t1", "text": "any other flats?", "is_final": True},
+            {"type": "call.stop", "reason": "caller_hangup"},
+        ],
+        adapter,
+        gap=0.05,
+    )
+    assert "Hyderabad flat" in prompts[-2] and "any other flats?" in prompts[-2]  # last is the post-call turn
+    assert not any("Sorry, I ran into a problem" in str(f.get("delta")) for f in link.sent)
