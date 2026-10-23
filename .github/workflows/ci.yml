@@ -1,0 +1,26 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.28"
+          python-version: ${{ matrix.python }}
+      - run: uv sync --frozen
+      - run: uv run ruff check sdk gateway tests
+      - run: uv run ruff format --check sdk gateway tests
+      - run: uv run pyright
+      - run: uv run pytest
+      - name: Generated models match spec
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        run: ./scripts/generate_models.sh && git diff --exit-code sdk/python/promptli/_generated

@@ -1,0 +1,51 @@
+[project]
+name = "promptli-comms-workspace"
+version = "0.0.0"
+requires-python = ">=3.11"
+dependencies = ["promptli[cli]", "promptli-gateway"]
+
+[tool.uv.workspace]
+members = ["sdk/python", "gateway"]
+
+[tool.uv.sources]
+promptli = { workspace = true }
+promptli-gateway = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "datamodel-code-generator[http]>=0.86",
+    "pyright>=1.1.414",
+    "pytest>=9.1",
+    "pytest-asyncio>=1.4",
+    "respx>=0.23",
+    "ruff>=0.17",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+extend-exclude = ["sdk/python/promptli/_generated"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "ASYNC", "RUF"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S105", "S106", "ASYNC"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["promptli", "promptli_gateway"]
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+include = ["sdk/python/promptli", "gateway/promptli_gateway"]
+exclude = ["**/_generated/**", "**/tests/**"]
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["sdk/python/tests", "gateway/tests", "tests"]
+addopts = "--import-mode=importlib -m 'not live'"
+markers = ["live: hits a real Promptli API (needs PROMPTLI_API_KEY)"]
