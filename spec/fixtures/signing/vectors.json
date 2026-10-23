@@ -1,0 +1,19 @@
+{
+  "scheme": "v1 = HMAC_SHA256(secret minus 'whsec_', id + '.' + timestamp + '.' + body)",
+  "vectors": [
+    {
+      "secret": "whsec_test_secret_one",
+      "id": "evt_01h000000000000000000000",
+      "timestamp": "1767225600",
+      "body": "{\"id\":\"evt_01h000000000000000000000\",\"type\":\"message.received\",\"data\":{}}",
+      "signature_header": "v1=94af4a87bbcd3b6f0958314fbc3abbb657cbce0e8e45b7d9037e3266ec137b23"
+    },
+    {
+      "secret": "whsec_another-secret_with-dashes",
+      "id": "evt_01h111111111111111111111",
+      "timestamp": "1767225660",
+      "body": "{\"id\":\"evt_01h111111111111111111111\",\"type\":\"webhook.test\",\"data\":{\"message\":\"Test délivery ✓\"}}",
+      "signature_header": "v1=31f6469a5c32257310593041398a6a372454a878acf126ec9155e774eff4e09c"
+    }
+  ]
+}

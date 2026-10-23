@@ -1,0 +1,280 @@
+{
+  "errors": [
+    {
+      "code": "api_key_expired",
+      "description": "The API key has expired.",
+      "retryable": false,
+      "status": 401
+    },
+    {
+      "code": "api_key_revoked",
+      "description": "The API key has been revoked.",
+      "retryable": false,
+      "status": 401
+    },
+    {
+      "code": "attachment_too_large",
+      "description": "Attachments may total at most 25 MB.",
+      "retryable": false,
+      "status": 413
+    },
+    {
+      "code": "carrier_blocked",
+      "description": "The carrier blocked this message.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "conflict",
+      "description": "The request conflicts with the current state.",
+      "retryable": false,
+      "status": 409
+    },
+    {
+      "code": "daily_send_limit",
+      "description": "The plan's daily sending limit has been reached.",
+      "retryable": true,
+      "status": 429
+    },
+    {
+      "code": "delivery_not_replayable",
+      "description": "This delivery can no longer be replayed.",
+      "retryable": false,
+      "status": 409
+    },
+    {
+      "code": "domain_in_use",
+      "description": "The domain is registered elsewhere or still used by mailboxes.",
+      "retryable": false,
+      "status": 409
+    },
+    {
+      "code": "domain_not_verified",
+      "description": "The domain has not been verified yet.",
+      "retryable": false,
+      "status": 409
+    },
+    {
+      "code": "env_mismatch",
+      "description": "Test and live resources cannot be mixed.",
+      "retryable": false,
+      "status": 400
+    },
+    {
+      "code": "event_type_unknown",
+      "description": "One or more event types are not in the catalog.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "forbidden",
+      "description": "This action is not allowed.",
+      "retryable": false,
+      "status": 403
+    },
+    {
+      "code": "handle_invalid",
+      "description": "Handles are 3-40 chars: lowercase letters, digits, hyphens.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "handle_taken",
+      "description": "That agent handle is already in use.",
+      "retryable": false,
+      "status": 409
+    },
+    {
+      "code": "idempotency_in_progress",
+      "description": "A request with this Idempotency-Key is still running.",
+      "retryable": true,
+      "status": 409
+    },
+    {
+      "code": "idempotency_key_reused",
+      "description": "The Idempotency-Key was used with a different request.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "insufficient_scope",
+      "description": "The credential lacks a scope required by this endpoint.",
+      "retryable": false,
+      "status": 403
+    },
+    {
+      "code": "internal_error",
+      "description": "Unexpected server error.",
+      "retryable": true,
+      "status": 500
+    },
+    {
+      "code": "invalid_api_key",
+      "description": "The API key is missing, malformed, or unknown.",
+      "retryable": false,
+      "status": 401
+    },
+    {
+      "code": "invalid_console_token",
+      "description": "The console session token is invalid or expired.",
+      "retryable": false,
+      "status": 401
+    },
+    {
+      "code": "mailbox_address_taken",
+      "description": "That mailbox address is already in use.",
+      "retryable": false,
+      "status": 409
+    },
+    {
+      "code": "mailbox_quota_exceeded",
+      "description": "The mailbox storage quota is full.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "media_unsupported",
+      "description": "The media type or size is not supported for MMS.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "message_too_large",
+      "description": "The message exceeds the maximum size.",
+      "retryable": false,
+      "status": 413
+    },
+    {
+      "code": "message_too_long",
+      "description": "SMS bodies are limited to 1600 characters.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "not_found",
+      "description": "The resource does not exist or is not visible to this credential.",
+      "retryable": false,
+      "status": 404
+    },
+    {
+      "code": "number_unavailable",
+      "description": "No numbers are available for that area; try another.",
+      "retryable": true,
+      "status": 409
+    },
+    {
+      "code": "org_suspended",
+      "description": "The organization is suspended.",
+      "retryable": false,
+      "status": 403
+    },
+    {
+      "code": "plan_limit_identities",
+      "description": "The plan's identity limit has been reached.",
+      "retryable": false,
+      "status": 403
+    },
+    {
+      "code": "plan_limit_numbers",
+      "description": "The plan's phone number limit has been reached.",
+      "retryable": false,
+      "status": 403
+    },
+    {
+      "code": "provider_error",
+      "description": "An upstream provider rejected the request.",
+      "retryable": false,
+      "status": 502
+    },
+    {
+      "code": "provider_unavailable",
+      "description": "An upstream provider is temporarily unavailable.",
+      "retryable": true,
+      "status": 503
+    },
+    {
+      "code": "provisional_key_restricted",
+      "description": "Verify the signup to unlock this action.",
+      "retryable": false,
+      "status": 403
+    },
+    {
+      "code": "rate_limited",
+      "description": "Too many requests; retry after the Retry-After interval.",
+      "retryable": true,
+      "status": 429
+    },
+    {
+      "code": "recipient_blocked",
+      "description": "Contact rules do not allow sending to this recipient.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "recipient_invalid",
+      "description": "The phone number is not valid or cannot receive texts.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "recipient_opted_out",
+      "description": "The recipient opted out (STOP) and must text START first.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "recipient_suppressed",
+      "description": "The recipient bounced or complained before; sending is suppressed.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "sender_blocked",
+      "description": "Contact rules block this sender.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "sender_no_number",
+      "description": "The identity has no phone number.",
+      "retryable": false,
+      "status": 409
+    },
+    {
+      "code": "sender_sms_pending",
+      "description": "The number is still being registered for SMS (10DLC).",
+      "retryable": true,
+      "status": 409
+    },
+    {
+      "code": "signup_code_invalid",
+      "description": "The verification code is not correct.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "signup_expired",
+      "description": "The signup verification window expired.",
+      "retryable": false,
+      "status": 410
+    },
+    {
+      "code": "subscription_url_invalid",
+      "description": "Webhook URLs must be public https URLs.",
+      "retryable": false,
+      "status": 422
+    },
+    {
+      "code": "test_mode_only",
+      "description": "This endpoint only works with test-mode (psk_test_) keys.",
+      "retryable": false,
+      "status": 403
+    },
+    {
+      "code": "validation_error",
+      "description": "The request body or parameters are invalid.",
+      "retryable": false,
+      "status": 422
+    }
+  ]
+}
