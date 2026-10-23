@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from promptli import AsyncPromptli, PromptliError
+from promptli.calls_live import CallDispatcher
 from promptli.link import AgentLink
 from promptli_gateway.adapter import (
     GatewayContext,
@@ -29,19 +30,28 @@ from promptli_gateway.adapter import (
     TurnKind,
 )
 from promptli_gateway.config import GatewayConfig
-from promptli_gateway.framing import frame_email, frame_texts, is_no_reply, split_sms, strip_markdown
+from promptli_gateway.framing import (
+    frame_email,
+    frame_texts,
+    frame_voicemail,
+    is_no_reply,
+    split_sms,
+    strip_markdown,
+)
 from promptli_gateway.state import GatewayState
+from promptli_gateway.tools.calls import call_tools
 from promptli_gateway.tools.comms import comms_tools
+from promptli_gateway.voice import CallTurnDriver
 
 log = logging.getLogger("promptli.gateway")
 
-TURN_EVENTS = {"message.received", "text.received"}
+TURN_EVENTS = {"message.received", "text.received", "call.ended"}
 
 
 @dataclass
 class _Job:
     session_key: str
-    channel: str  # email | sms
+    channel: str  # email | sms | voicemail
     events: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
 
 
@@ -65,6 +75,14 @@ class Gateway:
         self._sent_marks: dict[tuple[str, str], float] = {}
         self.turns_completed = 0
         self._stopping = asyncio.Event()
+        self.driver = CallTurnDriver(
+            adapter,
+            identity_name=config.identity,
+            get_session=self.state.session,
+            set_session=self.state.set_session,
+            post_call_turn=bool(config.extra.get("post_call_turn", True)),
+        )
+        self.dispatcher: CallDispatcher | None = None
 
     # ---- lifecycle ----------------------------------------------------------------------------
     async def prepare(self) -> GatewayContext:
@@ -73,20 +91,26 @@ class Gateway:
         status = await me.channel_status()
         self.identity_address = identity.email_address
         self.identity_number = status.sms.number
+        self.driver.identity_name = identity.display_name or identity.handle
         ctx = GatewayContext(
             self.cfg.identity, identity.email_address, status.sms.number, self.cfg.project_dir
         )
-        await self.adapter.start(ctx, comms_tools(self.client, self.cfg.identity, self._mark_sent))
+        tools = comms_tools(self.client, self.cfg.identity, self._mark_sent) + call_tools(
+            self.client, self.cfg.identity, self.driver.live_call
+        )
+        await self.adapter.start(ctx, tools)
         return ctx
 
     async def run(self) -> None:
         await self.prepare()
+        caps = ["channel_turns", "voice"] if self.adapter.capabilities.voice else ["channel_turns"]
         self.link = self.client.identity(self.cfg.identity).link(
             instance=self.cfg.instance_id,
-            capabilities=["channel_turns"],
+            capabilities=caps,
             user_agent=f"promptli-gateway {self.adapter.name}",
         )
         async with self.link as link:
+            self.dispatcher = CallDispatcher(link, self.driver.on_call)
             log.info("gateway connected as @%s (cursor %s)", self.cfg.identity, link.hello.get("cursor"))
             consumer = asyncio.create_task(self._consume(link))
             await self._stopping.wait()
@@ -101,6 +125,8 @@ class Gateway:
     async def shutdown(self) -> None:
         for t in self._workers.values():
             t.cancel()
+        if self.dispatcher is not None:
+            await self.dispatcher.close()
         await self.adapter.close()
         await self.client.close()
         self.state.close()
@@ -108,8 +134,10 @@ class Gateway:
     # ---- event intake -------------------------------------------------------------------------
     async def _consume(self, link: AgentLink) -> None:
         async for event in link:
+            if self.dispatcher is not None and await self.dispatcher.handle(event):
+                continue  # live call frames
             if "seq" not in event or "id" not in event:
-                continue  # non-event frames (call frames arrive in M3)
+                continue
             await self.handle_event(event)
 
     async def handle_event(self, event: dict[str, Any]) -> None:
@@ -150,6 +178,12 @@ class Gateway:
                 else (data.get("contact_key") or f"sms:{data['text']['from']}")
             )
             return _Job(key, "sms")
+        if kind == "call.ended":
+            call = data.get("call") or {}
+            if call.get("outcome") != "voicemail":
+                return None  # live calls already ran as voice turns; only voicemails need a turn
+            key = data.get("contact_key") or f"phone:{call.get('from')}"
+            return _Job(key, "voicemail")
         return None
 
     async def _advance(self) -> None:
@@ -187,7 +221,10 @@ class Gateway:
         self._sent_marks[(channel, recipient)] = time.monotonic()
 
     async def _run_turn(self, session_key: str, channel: str, batch: list[dict[str, Any]]) -> None:
-        if channel == "email":
+        if channel == "voicemail":
+            prompt = frame_voicemail(batch[0])
+            reply_target = ""
+        elif channel == "email":
             prompt = frame_email(batch[0], self.identity_address)
             reply_target = batch[0]["data"]["message"]["from"].lower()
         else:
@@ -211,7 +248,7 @@ class Gateway:
             else:
                 log.debug("tool %s %s", chunk.name, chunk.status)
         self.turns_completed += 1
-        if not self.cfg.auto_reply or is_no_reply(final):
+        if channel == "voicemail" or not self.cfg.auto_reply or is_no_reply(final):
             return
         replied = self._sent_marks.get((channel, reply_target), 0.0) >= started
         if replied:

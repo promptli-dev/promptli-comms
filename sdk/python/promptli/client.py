@@ -174,8 +174,42 @@ class Numbers(_Namespace):
         return [m.AvailableNumber.model_validate(x) for x in res["data"]]
 
 
+class Calls(_Namespace):
+    async def get(self, call_id: str) -> m.Call:
+        return m.Call.model_validate(await self._t.request("GET", f"/v1/calls/{call_id}"))
+
+    async def transcript(self, call_id: str) -> m.Transcript:
+        return m.Transcript.model_validate(await self._t.request("GET", f"/v1/calls/{call_id}/transcript"))
+
+    async def hangup(self, call_id: str) -> m.Call:
+        return m.Call.model_validate(await self._t.request("POST", f"/v1/calls/{call_id}/hangup"))
+
+    async def recording(self, call_id: str) -> bytes:
+        data = await self._t.request("GET", f"/v1/calls/{call_id}/recording")
+        return data if isinstance(data, bytes) else b""
+
+    async def voices(self, *, language: str | None = None, q: str | None = None) -> list[m.Voice]:
+        res = await self._t.request("GET", "/v1/voices", params={"language": language, "q": q})
+        return [m.Voice.model_validate(x) for x in res["data"]]
+
+
 class Sandbox(_Namespace):
     """Test mode only (psk_test_ keys): simulate the outside world."""
+
+    async def inbound_call(
+        self,
+        to_identity: str,
+        *,
+        script: list[dict[str, Any]] | None = None,
+        from_number: str = "+15550109999",
+    ) -> str:
+        """Simulate a phone call; returns the call id. Script steps: {"say"}, {"wait_ms"},
+        {"wait_for_agent": true}, {"interrupt"}, {"dtmf"}, {"hangup": true}."""
+        body: dict[str, Any] = {"to_identity": to_identity, "from_number": from_number}
+        if script is not None:
+            body["script"] = script
+        res = await self._t.request("POST", "/v1/sandbox/calls/inbound", json=body)
+        return str(res["call_id"])
 
     async def inbound_email(self, to_identity: str, **fields: Any) -> dict[str, Any]:
         res: dict[str, Any] = await self._t.request(
@@ -231,6 +265,7 @@ class AsyncPromptli:
         self.contacts = Contacts(self._t)
         self.webhooks = Webhooks(self._t)
         self.numbers = Numbers(self._t)
+        self.calls = Calls(self._t)
         self.sandbox = Sandbox(self._t)
         self.signup = Signup(self._t)
 

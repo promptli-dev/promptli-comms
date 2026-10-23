@@ -33,6 +33,7 @@ keys_app = typer.Typer(help="API keys", no_args_is_help=True)
 contacts_app = typer.Typer(help="Contacts", no_args_is_help=True)
 sandbox_app = typer.Typer(help="Test-mode simulators (psk_test_ keys)", no_args_is_help=True)
 signup_app = typer.Typer(help="Agent self-signup", no_args_is_help=True)
+call_app = typer.Typer(help="Phone calls (voice)", no_args_is_help=True)
 for sub, name in [
     (identities_app, "identities"),
     (email_app, "email"),
@@ -44,6 +45,7 @@ for sub, name in [
     (contacts_app, "contacts"),
     (sandbox_app, "sandbox"),
     (signup_app, "signup"),
+    (call_app, "call"),
 ]:
     app.add_typer(sub, name=name)
 
@@ -283,6 +285,101 @@ def email_reply(
     )
 
 
+# ---- calls ------------------------------------------------------------------------------------
+
+CALL_COLUMNS = ["id", "direction", "from_", "to", "status", "outcome", "duration_sec", "started_at"]
+
+
+@call_app.command("place")
+def call_place(
+    identity: IdentityOpt,
+    to: Annotated[str, typer.Option("--to", help="E.164 number")],
+    reason: Annotated[str | None, typer.Option(help="Why the agent is calling")] = None,
+    opening: Annotated[str | None, typer.Option(help="Spoken first when they answer")] = None,
+    voicemail: Annotated[str | None, typer.Option(help="Message to leave on a machine")] = None,
+    as_json: JsonOpt = False,
+) -> None:
+    """Call a number; your connected agent runs the conversation."""
+    _out(
+        _run(
+            _with(
+                lambda p: p.identity(identity).place_call(
+                    to, reason=reason, opening=opening, voicemail_message=voicemail
+                )
+            )
+        ),
+        as_json,
+        CALL_COLUMNS,
+    )
+
+
+@call_app.command("list", hidden=True)
+@call_app.command("ls")
+def call_ls(
+    identity: IdentityOpt, limit: Annotated[int, typer.Option()] = 20, as_json: JsonOpt = False
+) -> None:
+    _out(_run(_with(lambda p: p.identity(identity).calls(limit=limit))), as_json, CALL_COLUMNS)
+
+
+@call_app.command("show")
+def call_show(call_id: str, as_json: JsonOpt = False) -> None:
+    _out(_run(_with(lambda p: p.calls.get(call_id))), as_json, [*CALL_COLUMNS, "ended_by", "units"])
+
+
+@call_app.command("transcript")
+def call_transcript(call_id: str, as_json: JsonOpt = False) -> None:
+    t = _run(_with(lambda p: p.calls.transcript(call_id)))
+    if as_json:
+        _out(t, True)
+        return
+    for seg in t.segments:
+        colour = {"caller": "cyan", "agent": "#F04A28", "system": "dim"}.get(seg.party, "white")
+        cut = " [dim](interrupted)[/]" if seg.interrupted else ""
+        console.print(f"[{colour}]{seg.party:>6}[/]  {seg.text}{cut}")
+
+
+@call_app.command("hangup")
+def call_hangup(call_id: str, as_json: JsonOpt = False) -> None:
+    _out(_run(_with(lambda p: p.calls.hangup(call_id))), as_json, CALL_COLUMNS)
+
+
+@call_app.command("voice")
+def call_voice(
+    identity: IdentityOpt,
+    incoming: Annotated[str | None, typer.Option(help="agent | forward | auto_reject")] = None,
+    forward_to: Annotated[str | None, typer.Option()] = None,
+    voice_id: Annotated[str | None, typer.Option()] = None,
+    recording: Annotated[bool | None, typer.Option("--recording/--no-recording")] = None,
+    as_json: JsonOpt = False,
+) -> None:
+    """Show (or change) how calls are handled and how the agent sounds."""
+    changes = {
+        k: v
+        for k, v in {
+            "incoming_action": incoming,
+            "forward_to": forward_to,
+            "voice_id": voice_id,
+            "recording": recording,
+        }.items()
+        if v is not None
+    }
+
+    async def go(p: AsyncPromptli) -> Any:
+        me = p.identity(identity)
+        return await (me.update_voice_settings(**changes) if changes else me.voice_settings())
+
+    _out(_run(_with(go)), True)
+
+
+@call_app.command("voices")
+def call_voices(
+    language: Annotated[str | None, typer.Option()] = "en",
+    q: Annotated[str | None, typer.Option(help="Search")] = None,
+    as_json: JsonOpt = False,
+) -> None:
+    _out(_run(_with(lambda p: p.calls.voices(language=language, q=q))), as_json, ["id", "name", "gender"])
+
+
 # ---- texts & numbers -------------------------------------------------------------------------
 
 
@@ -467,6 +564,23 @@ def sandbox_inbound_email(
     text: Annotated[str, typer.Option("--text")] = "Simulated email",
 ) -> None:
     _out(_run(_with(lambda p: p.sandbox.inbound_email(identity, subject=subject, text=text))), True)
+
+
+@sandbox_app.command("inbound-call")
+def sandbox_inbound_call(
+    identity: IdentityOpt,
+    say: Annotated[list[str], typer.Option("--say", help="Caller lines, in order")] = [],  # noqa: B006
+    from_number: Annotated[str, typer.Option("--from")] = "+15550109999",
+) -> None:
+    """Simulate a phone call to the identity (test mode). Prints the call id (see `call transcript`)."""
+    script: list[dict[str, Any]] | None = None
+    if say:
+        script = [{"wait_for_agent": True}]
+        for line in say:
+            script += [{"say": line}, {"wait_for_agent": True}]
+        script.append({"hangup": True})
+    cid = _run(_with(lambda p: p.sandbox.inbound_call(identity, script=script, from_number=from_number)))
+    console.print(cid)
 
 
 @sandbox_app.command("inbound-text")

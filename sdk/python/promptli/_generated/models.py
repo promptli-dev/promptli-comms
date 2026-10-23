@@ -412,6 +412,32 @@ class ForwardEmail(BaseModel):
     to: Annotated[list[EmailStr], Field(title="To")]
 
 
+class InboundCall(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    from_number: Annotated[
+        str | None, Field(description="The simulated caller's number", title="From Number")
+    ] = "+15550109999"
+    script: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            description='What the caller does, in order: {"say": text}, {"wait_ms": n}, {"wait_for_agent": true}, {"interrupt": text} (talk over the agent), {"dtmf": "12#"}, {"hangup": true}',
+            title="Script",
+        ),
+    ] = None
+    to_identity: Annotated[
+        str, Field(description="Handle or idn_ id of the identity being called", title="To Identity")
+    ]
+
+
+class InboundCallResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    call_id: Annotated[str, Field(title="Call Id")]
+
+
 class InboundEmail(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -616,6 +642,66 @@ class PhoneNumber(BaseModel):
     status: Annotated[Literal["active", "released"], Field(title="Status")]
 
 
+class Context(RootModel[str]):
+    root: Annotated[str, Field(description="Extra context for the agent", max_length=8000, title="Context")]
+
+
+class Opening(RootModel[str]):
+    root: Annotated[
+        str,
+        Field(
+            description="Spoken as soon as the call is answered, before the agent",
+            max_length=1000,
+            title="Opening",
+        ),
+    ]
+
+
+class Reason(RootModel[str]):
+    root: Annotated[
+        str, Field(description="Why the agent is calling (shown to it)", max_length=500, title="Reason")
+    ]
+
+
+class VoicemailMessage(RootModel[str]):
+    root: Annotated[
+        str,
+        Field(
+            description="Left on an answering machine; without it we hang up",
+            max_length=1000,
+            title="Voicemail Message",
+        ),
+    ]
+
+
+class PlaceCall(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    context: Annotated[Context | None, Field(description="Extra context for the agent", title="Context")] = (
+        None
+    )
+    opening: Annotated[
+        Opening | None,
+        Field(description="Spoken as soon as the call is answered, before the agent", title="Opening"),
+    ] = None
+    reason: Annotated[
+        Reason | None, Field(description="Why the agent is calling (shown to it)", title="Reason")
+    ] = None
+    sandbox_script: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            description="Test mode only: what the simulated callee does (see /sandbox/calls/inbound)",
+            title="Sandbox Script",
+        ),
+    ] = None
+    to: Annotated[str, Field(description="E.164 number to call", title="To")]
+    voicemail_message: Annotated[
+        VoicemailMessage | None,
+        Field(description="Left on an answering machine; without it we hang up", title="Voicemail Message"),
+    ] = None
+
+
 class ProvisionNumber(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -627,6 +713,23 @@ class ProvisionNumber(BaseModel):
     region: Annotated[
         str | None, Field(description="US state, e.g. NY (when number is omitted)", title="Region")
     ] = None
+
+
+class Recording(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    available: Annotated[bool, Field(title="Available")]
+    duration_sec: Annotated[float | None, Field(title="Duration Sec")]
+
+
+class Ref(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    handle: Annotated[str | None, Field(title="Handle")] = None
+    id: Annotated[str, Field(title="Id")]
+    name: Annotated[str | None, Field(title="Name")] = None
 
 
 class ReplyEmail(BaseModel):
@@ -652,6 +755,19 @@ class SearchResults(BaseModel):
         populate_by_name=True,
     )
     data: Annotated[list[Message], Field(title="Data")]
+
+
+class Segment(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    end_ms: Annotated[int | None, Field(title="End Ms")]
+    interrupted: Annotated[bool, Field(title="Interrupted")]
+    party: Annotated[Literal["caller", "agent", "system"], Field(title="Party")]
+    seq: Annotated[int, Field(title="Seq")]
+    start_ms: Annotated[int | None, Field(title="Start Ms")]
+    text: Annotated[str, Field(title="Text")]
+    turn_id: Annotated[str | None, Field(title="Turn Id")]
 
 
 class SendEmail(BaseModel):
@@ -845,6 +961,29 @@ class TimelineItem(BaseModel):
     ref_id: Annotated[str, Field(title="Ref Id")]
 
 
+class Transcript(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    call_id: Annotated[str, Field(title="Call Id")]
+    segments: Annotated[list[Segment], Field(title="Segments")]
+
+
+class TranscriptHit(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    call_id: Annotated[str, Field(title="Call Id")]
+    segment: Segment
+
+
+class TranscriptSearch(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: Annotated[list[TranscriptHit], Field(title="Data")]
+
+
 class UpdateContact(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -921,6 +1060,70 @@ class VerifyRequest(BaseModel):
     code: Annotated[str, Field(max_length=6, min_length=6, pattern="^\\d{6}$", title="Code")]
 
 
+class Voice(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    description: Annotated[str | None, Field(title="Description")]
+    gender: Annotated[str | None, Field(title="Gender")]
+    id: Annotated[str, Field(title="Id")]
+    language: Annotated[str | None, Field(title="Language")]
+    name: Annotated[str, Field(title="Name")]
+    provider: Annotated[Literal["cartesia"], Field(title="Provider")]
+
+
+class VoiceList(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: Annotated[list[Voice], Field(title="Data")]
+
+
+class Greeting(RootModel[str]):
+    root: Annotated[str, Field(description="Voicemail greeting override", max_length=500, title="Greeting")]
+
+
+class Speed(RootModel[float]):
+    root: Annotated[float, Field(ge=0.6, le=1.5, title="Speed")]
+
+
+class VoiceSettings(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    agent_unreachable: Annotated[
+        Literal["voicemail", "reject"],
+        Field(
+            description="When no agent is connected or none accepts the call within a few seconds",
+            title="Agent Unreachable",
+        ),
+    ]
+    fillers: Annotated[
+        bool, Field(description="Short acknowledgments while your agent thinks", title="Fillers")
+    ]
+    forward_to: Annotated[str | None, Field(title="Forward To")] = None
+    greeting: Annotated[
+        Greeting | None, Field(description="Voicemail greeting override", title="Greeting")
+    ] = None
+    incoming_action: Annotated[
+        Literal["agent", "forward", "auto_reject"],
+        Field(
+            description="agent = your connected agent answers (Mode C); forward = ring forward_to; auto_reject",
+            title="Incoming Action",
+        ),
+    ]
+    language: Annotated[str | None, Field(title="Language")] = "en"
+    recording: Annotated[
+        bool,
+        Field(
+            description="Record calls (a consent announcement plays first). Off by default", title="Recording"
+        ),
+    ]
+    speed: Annotated[Speed | None, Field(title="Speed")] = None
+    tts_provider: Annotated[Literal["cartesia"], Field(title="Tts Provider")] = "cartesia"
+    voice_id: Annotated[str, Field(title="Voice Id")]
+
+
 class WebhookState(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -968,6 +1171,64 @@ class AvailableNumber(BaseModel):
     locality: Annotated[str | None, Field(title="Locality")]
     number: Annotated[str, Field(title="Number")]
     region: Annotated[str | None, Field(title="Region")]
+
+
+class Call(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    answered_at: Annotated[str | None, Field(title="Answered At")]
+    answered_by: Annotated[
+        str | None,
+        Field(description="Answering-machine detection result for outbound calls", title="Answered By"),
+    ]
+    contact: Ref | None
+    direction: Annotated[Literal["inbound", "outbound"], Field(title="Direction")]
+    duration_sec: Annotated[float | None, Field(title="Duration Sec")]
+    ended_at: Annotated[str | None, Field(title="Ended At")]
+    ended_by: Annotated[Literal["caller", "agent", "system"] | None, Field(title="Ended By")]
+    env: Annotated[Literal["live", "test"], Field(title="Env")]
+    from_: Annotated[str, Field(alias="from", title="From")]
+    hangup_reason: Annotated[str | None, Field(title="Hangup Reason")]
+    id: Annotated[str, Field(title="Id")]
+    identity: Ref | None
+    mode: Annotated[Literal["agent", "forward", "voicemail", "rejected"], Field(title="Mode")]
+    outcome: Annotated[
+        str | None,
+        Field(
+            description="answered_by_agent | voicemail | voicemail_left | forwarded | no_agent | machine | transferred | agent_disconnected | blocked | auto_rejected | no_answer | busy | failed",
+            title="Outcome",
+        ),
+    ]
+    reason: Annotated[str | None, Field(title="Reason")]
+    recording: Recording | None
+    started_at: Annotated[str, Field(title="Started At")]
+    status: Annotated[
+        Literal[
+            "queued",
+            "ringing",
+            "in_progress",
+            "completed",
+            "busy",
+            "no_answer",
+            "failed",
+            "canceled",
+            "rejected",
+        ],
+        Field(title="Status"),
+    ]
+    to: Annotated[str, Field(title="To")]
+    units: Annotated[
+        float | None, Field(description="Voice units billed (1 per minute, 6-second blocks)", title="Units")
+    ]
+
+
+class CallPage(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: Annotated[list[Call], Field(title="Data")]
+    next_cursor: Annotated[str | None, Field(title="Next Cursor")] = None
 
 
 class ChannelStatus(BaseModel):

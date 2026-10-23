@@ -35,8 +35,13 @@ class EchoAdapter:
     ) -> AsyncIterator[TurnChunk]:
         self.prompts.append((session_key, prompt, kind))
         m = re.search(r"<external_content[^>]*>\n(.*?)\n</external_content>", prompt, re.S)
-        body = (m.group(1) if m else prompt).strip()
-        reply = f"{self.prefix}{body}"
+        if kind is TurnKind.POST_CALL:
+            body, reply = "", "NO_REPLY"
+        elif kind is TurnKind.VOICE and not m:
+            body, reply = "", "Hello, this is the echo agent."
+        else:
+            body = (m.group(1) if m else prompt).strip()
+            reply = f"{self.prefix}{body}"
         for word in reply.split(" "):
             yield TextDelta(word + " ")
         yield TurnDone(text=reply, session_id=resume_id or f"echo-{session_key}")

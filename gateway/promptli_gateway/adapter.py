@@ -54,6 +54,7 @@ class AdapterCapabilities:
     native_tools: bool = True  # the runtime calls our ToolSpecs itself
     resumable_sessions: bool = False  # session ids survive restarts
     interruptible: bool = False  # interrupt() stops a running turn (voice barge-in)
+    voice: bool = True  # can answer live calls (Agent Link capability "voice")
 
 
 @dataclass
