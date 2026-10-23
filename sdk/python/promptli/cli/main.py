@@ -99,9 +99,10 @@ def _out(obj: Any, as_json: bool, columns: list[str] | None = None, title: str |
     rows: list[dict[str, Any]] = data if isinstance(data, list) else [data]  # pyright: ignore[reportUnknownVariableType]
     table = Table(title=title, header_style="bold #F04A28")
     for c in columns:
-        table.add_column(c)
+        table.add_column(c.rstrip("_"))  # python-safe names like from_ are serialized as "from"
     for r in rows:
-        table.add_row(*[str(r.get(c, "")) if r.get(c) is not None else "" for c in columns])
+        values = [r.get(c, r.get(c.rstrip("_"))) for c in columns]
+        table.add_row(*["" if v is None else str(v) for v in values])
     console.print(table)
 
 
@@ -167,7 +168,10 @@ def doctor(identity: IdentityOpt, as_json: JsonOpt = False) -> None:
     console.print(
         f"  {ok if st.sms.ready else no} sms     {st.sms.number or 'no number'} {st.sms.status or ''}"
     )
-    console.print(f"  {ok if st.voice.ready else no} voice   {st.voice.number or 'no number'}")
+    voice_note = st.voice.number or "no number"
+    if st.voice.status == "not_available_yet":
+        voice_note = "not available yet"
+    console.print(f"  {ok if st.voice.ready else no} voice   {voice_note}")
     console.print(
         f"  {ok if st.agent_link.connected else no} link    {len(st.agent_link.sessions)} session(s)"
     )
@@ -179,6 +183,7 @@ def doctor(identity: IdentityOpt, as_json: JsonOpt = False) -> None:
 # ---- identities ------------------------------------------------------------------------------
 
 
+@identities_app.command("list", hidden=True)
 @identities_app.command("ls")
 def identities_ls(as_json: JsonOpt = False) -> None:
     _out(
@@ -233,6 +238,7 @@ def email_send(
     _out(msg, as_json, ["id", "status", "to", "subject"])
 
 
+@email_app.command("list", hidden=True)
 @email_app.command("ls")
 def email_ls(
     identity: IdentityOpt,
@@ -294,6 +300,7 @@ def text_send(
     )
 
 
+@text_app.command("list", hidden=True)
 @text_app.command("ls")
 def text_ls(
     identity: IdentityOpt, limit: Annotated[int, typer.Option()] = 20, as_json: JsonOpt = False
@@ -329,6 +336,7 @@ def number_release(identity: IdentityOpt, yes: Annotated[bool, typer.Option("--y
     console.print("Released.")
 
 
+@number_app.command("list", hidden=True)
 @number_app.command("ls")
 def number_ls(as_json: JsonOpt = False) -> None:
     _out(_run(_with(lambda p: p.numbers.list())), as_json, ["number", "identity", "sms_status", "id"])
@@ -337,6 +345,7 @@ def number_ls(as_json: JsonOpt = False) -> None:
 # ---- events ----------------------------------------------------------------------------------
 
 
+@events_app.command("list", hidden=True)
 @events_app.command("ls")
 def events_ls(
     identity: IdentityOpt, after: Annotated[int, typer.Option()] = 0, as_json: JsonOpt = False
@@ -366,6 +375,7 @@ def events_tail(identity: IdentityOpt, instance: Annotated[str | None, typer.Opt
 # ---- webhooks, keys, contacts ----------------------------------------------------------------
 
 
+@webhooks_app.command("list", hidden=True)
 @webhooks_app.command("ls")
 def webhooks_ls(
     identity: Annotated[str | None, typer.Option("--identity", "-i")] = None, as_json: JsonOpt = False
@@ -405,6 +415,7 @@ def webhooks_replay(delivery_id: str, as_json: JsonOpt = False) -> None:
     _out(_run(_with(lambda p: p.webhooks.replay(delivery_id))), as_json, ["id", "event_id", "status"])
 
 
+@keys_app.command("list", hidden=True)
 @keys_app.command("ls")
 def keys_ls(as_json: JsonOpt = False) -> None:
     _out(
@@ -426,6 +437,7 @@ def keys_revoke(key_id: str) -> None:
     console.print(f"Revoked {key_id}")
 
 
+@contacts_app.command("list", hidden=True)
 @contacts_app.command("ls")
 def contacts_ls(q: Annotated[str | None, typer.Option()] = None, as_json: JsonOpt = False) -> None:
     _out(_run(_with(lambda p: p.contacts.list(q=q))), as_json, ["id", "name", "emails", "phones", "source"])
