@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Runtime-agnostic plugin core for Promptli Comms (Agent Link, sessions, setup, doctor)"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = ["promptli"]
+dependencies = ["promptli", "mcp>=1.20"]
 
 [build-system]
 requires = ["hatchling"]
