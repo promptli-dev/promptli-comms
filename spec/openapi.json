@@ -2325,6 +2325,50 @@
         "title": "ForwardEmail",
         "type": "object"
       },
+      "Guidance": {
+        "properties": {
+          "text": {
+            "description": "What the agent should do or bring up",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "Guidance",
+        "type": "object"
+      },
+      "GuidanceResult": {
+        "properties": {
+          "applied": {
+            "title": "Applied",
+            "type": "boolean"
+          },
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "when": {
+            "description": "now = the agent was idle and speaks right away; next_turn = it shapes the agent's next reply",
+            "enum": [
+              "now",
+              "next_turn"
+            ],
+            "title": "When",
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "applied",
+          "when"
+        ],
+        "title": "GuidanceResult",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -5476,6 +5520,64 @@
           }
         ],
         "summary": "Get Call",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}/guidance": {
+      "post": {
+        "description": "Steer a live call: the agent privately receives your guidance and works it into the conversation\n(e.g. \"move on to pricing\", \"ask for their email\"). The caller never hears the guidance itself.",
+        "operationId": "guideCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Guidance"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidanceResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Guide",
         "tags": [
           "Calls"
         ]

@@ -18,6 +18,7 @@ from promptli.calls_live import LiveCall
 from promptli_gateway.adapter import RuntimeAdapter, TextDelta, ToolActivity, TurnDone, TurnKind
 from promptli_gateway.framing import (
     frame_call_dtmf,
+    frame_call_guidance,
     frame_call_start,
     frame_call_turn,
     frame_post_call,
@@ -58,6 +59,7 @@ class CallTurnDriver:
         info = {**call.incoming}
         header: str | None = None  # call context, sent with the first turn
         barge: dict[str, Any] | None = None
+        guidance: list[str] = []  # owner steering to fold into the next reply
         running: asyncio.Task[None] | None = None
 
         async def start_turn(turn_id: str, prompt: str) -> None:
@@ -86,7 +88,15 @@ class CallTurnDriver:
                 elif kind == "call.transcript" and frame.get("is_final") and frame.get("turn_id"):
                     prompt = frame_call_turn(str(frame.get("text") or ""), barge=barge)
                     barge = None
+                    if guidance:
+                        prompt = "\n".join(frame_call_guidance(g) for g in guidance) + "\n" + prompt
+                        guidance.clear()
                     await start_turn(str(frame["turn_id"]), prompt)
+                elif kind == "call.guidance" and frame.get("text"):
+                    if frame.get("turn_id"):  # the agent is idle: speak now
+                        await start_turn(str(frame["turn_id"]), frame_call_guidance(str(frame["text"])))
+                    else:  # mid-reply: shape the next one
+                        guidance.append(str(frame["text"]))
                 elif kind == "call.barge_in":
                     barge = frame
                     if running is not None and not running.done():

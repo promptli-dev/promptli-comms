@@ -412,6 +412,33 @@ class ForwardEmail(BaseModel):
     to: Annotated[list[EmailStr], Field(title="To")]
 
 
+class Guidance(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    text: Annotated[
+        str,
+        Field(
+            description="What the agent should do or bring up", max_length=1000, min_length=1, title="Text"
+        ),
+    ]
+
+
+class GuidanceResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    applied: Annotated[bool, Field(title="Applied")]
+    call_id: Annotated[str, Field(title="Call Id")]
+    when: Annotated[
+        Literal["now", "next_turn"],
+        Field(
+            description="now = the agent was idle and speaks right away; next_turn = it shapes the agent's next reply",
+            title="When",
+        ),
+    ]
+
+
 class InboundCall(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,

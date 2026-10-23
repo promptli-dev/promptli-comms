@@ -181,6 +181,14 @@ class Calls(_Namespace):
     async def transcript(self, call_id: str) -> m.Transcript:
         return m.Transcript.model_validate(await self._t.request("GET", f"/v1/calls/{call_id}/transcript"))
 
+    async def guide(self, call_id: str, text: str) -> dict[str, Any]:
+        """Steer a live call: your agent privately gets `text` and works it into the conversation.
+        Returns {"applied": true, "when": "now" | "next_turn"}."""
+        res: dict[str, Any] = await self._t.request(
+            "POST", f"/v1/calls/{call_id}/guidance", json={"text": text}
+        )
+        return res
+
     async def hangup(self, call_id: str) -> m.Call:
         return m.Call.model_validate(await self._t.request("POST", f"/v1/calls/{call_id}/hangup"))
 
