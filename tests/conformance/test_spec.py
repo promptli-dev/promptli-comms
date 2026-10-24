@@ -58,6 +58,7 @@ def test_facade_covers_core_operations() -> None:
         "listConversations": '/conversations"',
         "sandboxInboundText": "/v1/sandbox/texts/inbound",
         "whoami": "/v1/whoami",
+        "getUsage": "/v1/usage",
     }
     for op, fragment in path_fragments.items():
         assert op in ops, f"{op} missing from spec"

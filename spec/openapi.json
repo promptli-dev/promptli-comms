@@ -318,6 +318,65 @@
         "title": "AvailableNumber",
         "type": "object"
       },
+      "BillingSegment": {
+        "properties": {
+          "billed_seconds": {
+            "description": "Rounded up to the next 6-second block",
+            "title": "Billed Seconds",
+            "type": "integer"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "engine": {
+            "description": "mode_c | hosted_cascaded | openai_realtime | forward",
+            "title": "Engine",
+            "type": "string"
+          },
+          "pool_seconds": {
+            "description": "Included-minute seconds used: billed_seconds x tier ratio (1/2/5)",
+            "title": "Pool Seconds",
+            "type": "integer"
+          },
+          "seconds": {
+            "description": "Exact connected seconds in this segment",
+            "title": "Seconds",
+            "type": "integer"
+          },
+          "started_at": {
+            "title": "Started At",
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "standard",
+              "hosted",
+              "premium"
+            ],
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier",
+          "engine",
+          "started_at",
+          "ended_at",
+          "seconds",
+          "billed_seconds",
+          "pool_seconds"
+        ],
+        "title": "BillingSegment",
+        "type": "object"
+      },
       "Call": {
         "properties": {
           "answered_at": {
@@ -342,6 +401,17 @@
             ],
             "description": "Answering-machine detection result for outbound calls",
             "title": "Answered By"
+          },
+          "billing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CallBilling"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Metered call time, available when the call has ended"
           },
           "contact": {
             "anyOf": [
@@ -498,21 +568,26 @@
             "title": "Status",
             "type": "string"
           },
-          "to": {
-            "title": "To",
-            "type": "string"
-          },
-          "units": {
+          "tier": {
             "anyOf": [
               {
-                "type": "number"
+                "enum": [
+                  "standard",
+                  "hosted",
+                  "premium"
+                ],
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Voice units billed (1 per minute, 6-second blocks)",
-            "title": "Units"
+            "description": "standard = your agent ($0.05/min) \u00b7 hosted = our assistant ($0.10/min) \u00b7 premium = OpenAI Realtime ($0.25/min). Set once the call connects",
+            "title": "Tier"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
           }
         },
         "required": [
@@ -530,7 +605,8 @@
           "contact",
           "reason",
           "recording",
-          "units",
+          "tier",
+          "billing",
           "started_at",
           "answered_at",
           "ended_at",
@@ -538,6 +614,43 @@
           "env"
         ],
         "title": "Call",
+        "type": "object"
+      },
+      "CallBilling": {
+        "properties": {
+          "billed_seconds": {
+            "title": "Billed Seconds",
+            "type": "integer"
+          },
+          "metered": {
+            "description": "False in test mode: tracked, never billed",
+            "title": "Metered",
+            "type": "boolean"
+          },
+          "pool_seconds": {
+            "title": "Pool Seconds",
+            "type": "integer"
+          },
+          "seconds": {
+            "title": "Seconds",
+            "type": "integer"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/BillingSegment"
+            },
+            "title": "Segments",
+            "type": "array"
+          }
+        },
+        "required": [
+          "seconds",
+          "billed_seconds",
+          "pool_seconds",
+          "metered",
+          "segments"
+        ],
+        "title": "CallBilling",
         "type": "object"
       },
       "CallPage": {
@@ -3190,6 +3303,30 @@
         "title": "OptInList",
         "type": "object"
       },
+      "Overage": {
+        "properties": {
+          "allowed": {
+            "title": "Allowed",
+            "type": "boolean"
+          },
+          "amount_cents": {
+            "description": "pool_seconds / 60 * $0.05",
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "pool_seconds": {
+            "title": "Pool Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "allowed",
+          "pool_seconds",
+          "amount_cents"
+        ],
+        "title": "Overage",
+        "type": "object"
+      },
       "Page_Contact_": {
         "properties": {
           "data": {
@@ -3350,6 +3487,30 @@
           "data"
         ],
         "title": "Page[Thread]",
+        "type": "object"
+      },
+      "Period": {
+        "properties": {
+          "end": {
+            "title": "End",
+            "type": "string"
+          },
+          "key": {
+            "description": "YYYY-MM",
+            "title": "Key",
+            "type": "string"
+          },
+          "start": {
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "start",
+          "end"
+        ],
+        "title": "Period",
         "type": "object"
       },
       "PhoneNumber": {
@@ -3527,6 +3688,44 @@
           "to"
         ],
         "title": "PlaceCall",
+        "type": "object"
+      },
+      "Pool": {
+        "properties": {
+          "included_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null = unlimited (enterprise, internal) or test mode",
+            "title": "Included Seconds"
+          },
+          "remaining_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Seconds"
+          },
+          "used_seconds": {
+            "title": "Used Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "included_seconds",
+          "used_seconds",
+          "remaining_seconds"
+        ],
+        "title": "Pool",
         "type": "object"
       },
       "ProvisionNumber": {
@@ -4601,6 +4800,63 @@
         "title": "ThreadDetail",
         "type": "object"
       },
+      "TierUsage": {
+        "properties": {
+          "billed_seconds": {
+            "description": "Seconds after rounding each segment up to 6 s",
+            "title": "Billed Seconds",
+            "type": "integer"
+          },
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "pool_seconds": {
+            "description": "billed_seconds x ratio",
+            "title": "Pool Seconds",
+            "type": "integer"
+          },
+          "price_cents_per_minute": {
+            "title": "Price Cents Per Minute",
+            "type": "integer"
+          },
+          "ratio": {
+            "description": "Included-minute seconds used per billed second",
+            "title": "Ratio",
+            "type": "integer"
+          },
+          "seconds": {
+            "description": "Exact connected seconds",
+            "title": "Seconds",
+            "type": "integer"
+          },
+          "tier": {
+            "enum": [
+              "standard",
+              "hosted",
+              "premium"
+            ],
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier",
+          "label",
+          "ratio",
+          "price_cents_per_minute",
+          "calls",
+          "seconds",
+          "billed_seconds",
+          "pool_seconds"
+        ],
+        "title": "TierUsage",
+        "type": "object"
+      },
       "TimelineItem": {
         "properties": {
           "at": {
@@ -4912,6 +5168,60 @@
           }
         },
         "title": "UpsertIdentity",
+        "type": "object"
+      },
+      "Usage": {
+        "properties": {
+          "env": {
+            "enum": [
+              "live",
+              "test"
+            ],
+            "title": "Env",
+            "type": "string"
+          },
+          "metered": {
+            "description": "False in test mode: usage is tracked but never billed",
+            "title": "Metered",
+            "type": "boolean"
+          },
+          "overage": {
+            "$ref": "#/components/schemas/Overage"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "plan": {
+            "enum": [
+              "free",
+              "developer",
+              "startup",
+              "enterprise"
+            ],
+            "title": "Plan",
+            "type": "string"
+          },
+          "pool": {
+            "$ref": "#/components/schemas/Pool"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/TierUsage"
+            },
+            "title": "Tiers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "period",
+          "plan",
+          "env",
+          "metered",
+          "tiers",
+          "pool",
+          "overage"
+        ],
+        "title": "Usage",
         "type": "object"
       },
       "ValidationError": {
@@ -10295,6 +10605,64 @@
         "summary": "Record Optout",
         "tags": [
           "SMS Opt-Ins"
+        ]
+      }
+    },
+    "/v1/usage": {
+      "get": {
+        "description": "Call minutes this period per tier (Standard / Hosted / Premium), the included pool and any overage.",
+        "operationId": "getUsage",
+        "parameters": [
+          {
+            "description": "YYYY-MM; default current",
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM; default current",
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Usage",
+        "tags": [
+          "Billing"
         ]
       }
     },

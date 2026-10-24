@@ -156,6 +156,49 @@ def whoami(as_json: JsonOpt = False) -> None:
     )
 
 
+def mmss(seconds: float | None) -> str:
+    """Seconds as m:ss, always in minutes (300:00, not 5:00:00): call time is sold in minutes."""
+    s = max(0, round(seconds or 0))
+    return f"{s // 60}:{s % 60:02d}"
+
+
+@app.command()
+def usage(
+    period: Annotated[str | None, typer.Option(help="Billing period YYYY-MM (default: current)")] = None,
+    as_json: JsonOpt = False,
+) -> None:
+    """Call minutes this period per tier, included minutes left and overage."""
+    u = _run(_with(lambda p: p.usage(period)))
+    if as_json:
+        _out(u, True)
+        return
+    table = Table(title=f"Call minutes {u.period.key} · {u.plan} · {u.env}", header_style="bold #F04A28")
+    for col in ("tier", "price", "calls", "talk time", "billed", "counts as"):
+        table.add_column(col, justify="left" if col in ("tier", "price") else "right")
+    for t in u.tiers:
+        table.add_row(
+            t.label,
+            f"${t.price_cents_per_minute / 100:.2f}/min",
+            str(t.calls),
+            mmss(t.seconds),
+            mmss(t.billed_seconds),
+            mmss(t.pool_seconds),
+        )
+    console.print(table)
+    if not u.metered:
+        console.print("Test mode: tracked, never billed.")
+    elif u.pool.included_seconds is None:
+        console.print(f"Included minutes: unlimited · used {mmss(u.pool.used_seconds)}")
+    else:
+        left = u.pool.remaining_seconds or 0
+        console.print(
+            f"Included minutes: {mmss(u.pool.used_seconds)} of {mmss(u.pool.included_seconds)} used · "
+            f"{mmss(left)} left (≈ {left // 60} Standard / {left // 120} Hosted / {left // 300} Premium min)"
+        )
+    if u.overage.pool_seconds:
+        console.print(f"Overage: {mmss(u.overage.pool_seconds)} · ${u.overage.amount_cents / 100:.2f}")
+
+
 @app.command()
 def doctor(identity: IdentityOpt, as_json: JsonOpt = False) -> None:
     """Explain what works for an identity (email, SMS, voice, Agent Link, webhooks) and what to fix."""
@@ -323,7 +366,18 @@ def call_ls(
 
 @call_app.command("show")
 def call_show(call_id: str, as_json: JsonOpt = False) -> None:
-    _out(_run(_with(lambda p: p.calls.get(call_id))), as_json, [*CALL_COLUMNS, "ended_by", "units"])
+    call = _run(_with(lambda p: p.calls.get(call_id)))
+    if as_json:
+        _out(call, True)
+        return
+    _out(call, False, [*CALL_COLUMNS, "ended_by", "tier"])
+    if call.billing:
+        for seg in call.billing.segments:
+            extra = f" (counts as {mmss(seg.pool_seconds)})" if seg.pool_seconds != seg.billed_seconds else ""
+            talk, billed = mmss(seg.seconds), mmss(seg.billed_seconds)
+            console.print(f"{seg.tier.capitalize()} · talk {talk} · billed {billed}{extra}")
+        if not call.billing.metered:
+            console.print("Test mode: not billed.")
 
 
 @call_app.command("transcript")

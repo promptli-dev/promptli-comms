@@ -109,6 +109,12 @@
       "status": 422
     },
     {
+      "code": "insufficient_minutes",
+      "description": "No included call minutes are left this period and the plan has no overage.",
+      "retryable": false,
+      "status": 402
+    },
+    {
       "code": "insufficient_scope",
       "description": "The credential lacks a scope required by this endpoint.",
       "retryable": false,
