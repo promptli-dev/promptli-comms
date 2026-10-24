@@ -2,8 +2,22 @@
 #   filename:  openapi.json
 
 from __future__ import annotations
-from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field, RootModel
 from typing import Annotated, Any, Literal
+from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field, RootModel
+
+
+class Answer(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    request_id: Annotated[
+        str | None,
+        Field(
+            description="The ask_supervisor action id (act_…); default: the latest open question",
+            title="Request Id",
+        ),
+    ] = None
+    text: Annotated[str, Field(max_length=2000, min_length=1, title="Text")]
 
 
 class ApiKey(BaseModel):
@@ -81,6 +95,50 @@ class BillingSegment(BaseModel):
     tier: Annotated[Literal["standard", "hosted", "premium"], Field(title="Tier")]
 
 
+class BriefVersion(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    ops: Annotated[list[dict[str, Any]] | None, Field(title="Ops")]
+    updated_at: Annotated[str, Field(title="Updated At")]
+    updated_by: Annotated[str, Field(title="Updated By")]
+    version: Annotated[int, Field(title="Version")]
+
+
+class BriefView(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    brief: Annotated[
+        dict[str, Any],
+        Field(
+            description="persona, instructions, identity, caller, history, task, facts, guidance, policies, tools, voice, call (docs: Call Brief)",
+            title="Brief",
+        ),
+    ]
+    call_id: Annotated[str, Field(title="Call Id")]
+    updated_at: Annotated[str, Field(title="Updated At")]
+    updated_by: Annotated[str, Field(title="Updated By")]
+    version: Annotated[int, Field(title="Version")]
+
+
+class CallAction(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    answer: Annotated[str | None, Field(title="Answer")]
+    at: Annotated[str, Field(title="At")]
+    id: Annotated[str, Field(title="Id")]
+    kind: Annotated[
+        str,
+        Field(
+            description="follow_up | send_sms | send_email | ask_supervisor | callback | other", title="Kind"
+        ),
+    ]
+    status: Annotated[Literal["pending", "done", "answered", "expired"], Field(title="Status")]
+    summary: Annotated[str, Field(title="Summary")]
+
+
 class CallBilling(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -90,6 +148,19 @@ class CallBilling(BaseModel):
     pool_seconds: Annotated[int, Field(title="Pool Seconds")]
     seconds: Annotated[int, Field(title="Seconds")]
     segments: Annotated[list[BillingSegment], Field(title="Segments")]
+
+
+class CallSummary(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    action_items: Annotated[list[str], Field(title="Action Items")]
+    at: Annotated[str, Field(title="At")]
+    outcome: Annotated[
+        str,
+        Field(description='One short phrase, e.g. "booked Friday 4pm" or "needs callback"', title="Outcome"),
+    ]
+    text: Annotated[str, Field(title="Text")]
 
 
 class Capabilities(BaseModel):
@@ -473,6 +544,69 @@ class GuidanceResult(BaseModel):
     ]
 
 
+class Name(RootModel[str]):
+    root: Annotated[
+        str, Field(description="Default: the identity's display name", max_length=80, title="Name")
+    ]
+
+
+class Role(RootModel[str]):
+    root: Annotated[str, Field(description='e.g. "front desk for Glow Salon"', max_length=200, title="Role")]
+
+
+class Style(RootModel[str]):
+    root: Annotated[str, Field(description='e.g. "warm, brief"', max_length=200, title="Style")]
+
+
+class HostedPersona(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    name: Annotated[Name | None, Field(description="Default: the identity's display name", title="Name")] = (
+        None
+    )
+    role: Annotated[Role | None, Field(description='e.g. "front desk for Glow Salon"', title="Role")] = None
+    style: Annotated[Style | None, Field(description='e.g. "warm, brief"', title="Style")] = None
+
+
+class HostedPolicies(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    escalate_if: Annotated[list[str] | None, Field(max_length=30, title="Escalate If")] = None
+    never: Annotated[list[str] | None, Field(max_length=30, title="Never")] = None
+
+
+class Goal(RootModel[str]):
+    root: Annotated[str, Field(max_length=500, title="Goal")]
+
+
+class HostedSettings(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    facts: Annotated[list[str] | None, Field(max_length=50, title="Facts")] = None
+    goal: Annotated[Goal | None, Field(title="Goal")] = None
+    instructions: Annotated[str, Field(max_length=8000, title="Instructions")]
+    persona: HostedPersona | None = None
+    policies: HostedPolicies | None = None
+    tools: Annotated[
+        list[
+            Literal[
+                "send_sms",
+                "send_email",
+                "transfer",
+                "dtmf",
+                "queue_action",
+                "ask_supervisor",
+                "hang_up",
+                "recall_history",
+            ]
+        ],
+        Field(description="Tools the assistant may use. transfer also needs voice.forward_to", title="Tools"),
+    ]
+
+
 class InboundCall(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -696,6 +830,15 @@ class PageMessage(BaseModel):
     next_cursor: Annotated[str | None, Field(title="Next Cursor")] = None
 
 
+class PatchOp(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    op: Annotated[Literal["add", "replace", "remove"], Field(title="Op")]
+    path: Annotated[str, Field(description='JSON Pointer, e.g. "/facts/-" or "/task/goal"', title="Path")]
+    value: Annotated[Any | None, Field(title="Value")] = None
+
+
 class Period(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -760,6 +903,13 @@ class PlaceCall(BaseModel):
     context: Annotated[Context | None, Field(description="Extra context for the agent", title="Context")] = (
         None
     )
+    mode: Annotated[
+        Literal["standard", "hosted"] | None,
+        Field(
+            description="standard = your connected agent talks ($0.05/min); hosted = the Promptli assistant talks from the call brief ($0.10/min; needs Hosted calls enabled). Default standard",
+            title="Mode",
+        ),
+    ] = None
     opening: Annotated[
         Opening | None,
         Field(description="Spoken as soon as the call is answered, before the agent", title="Opening"),
@@ -839,6 +989,22 @@ class RuleModes(BaseModel):
     )
     email: DirectionModes
     phone: DirectionModes
+
+
+class Say(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    mode: Annotated[
+        Literal["next", "now"] | None,
+        Field(
+            description="next = after the current sentence; now = interrupt and speak immediately",
+            title="Mode",
+        ),
+    ] = "next"
+    text: Annotated[
+        str, Field(description="Spoken word for word", max_length=1000, min_length=1, title="Text")
+    ]
 
 
 class SearchResults(BaseModel):
@@ -938,6 +1104,15 @@ class SignupStatus(BaseModel):
     expires_at: Annotated[str, Field(title="Expires At")]
     human_email: Annotated[str, Field(title="Human Email")]
     status: Annotated[Literal["pending", "verified", "expired"], Field(title="Status")]
+
+
+class SteerResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    applied: Annotated[bool, Field(title="Applied")]
+    call_id: Annotated[str, Field(title="Call Id")]
+    when: Annotated[Literal["now", "next", "next_turn"] | None, Field(title="When")] = None
 
 
 class Subscription(BaseModel):
@@ -1228,9 +1403,9 @@ class VoiceSettings(BaseModel):
         Greeting | None, Field(description="Voicemail greeting override", title="Greeting")
     ] = None
     incoming_action: Annotated[
-        Literal["agent", "forward", "auto_reject"],
+        Literal["agent", "hosted", "forward", "auto_reject"],
         Field(
-            description="agent = your connected agent answers (Mode C); forward = ring forward_to; auto_reject",
+            description="agent = your connected agent answers (Standard); hosted = the Promptli assistant answers from the call brief (Hosted, needs Hosted calls enabled); forward = ring forward_to; auto_reject",
             title="Incoming Action",
         ),
     ]
@@ -1295,10 +1470,39 @@ class AvailableNumber(BaseModel):
     region: Annotated[str | None, Field(title="Region")]
 
 
+class BriefHistory(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    call_id: Annotated[str, Field(title="Call Id")]
+    data: Annotated[list[BriefVersion], Field(title="Data")]
+
+
+class BriefPatch(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    base_version: Annotated[
+        int,
+        Field(
+            description="The version you read; a newer brief returns 409 brief_version_conflict",
+            title="Base Version",
+        ),
+    ]
+    ops: Annotated[list[PatchOp], Field(max_length=20, min_length=1, title="Ops")]
+
+
 class Call(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
+    actions: Annotated[
+        list[CallAction] | None,
+        Field(
+            description="What the hosted assistant queued: follow-ups, texts/emails to send, supervisor questions",
+            title="Actions",
+        ),
+    ] = None
     answered_at: Annotated[str | None, Field(title="Answered At")]
     answered_by: Annotated[
         str | None,
@@ -1317,7 +1521,13 @@ class Call(BaseModel):
     hangup_reason: Annotated[str | None, Field(title="Hangup Reason")]
     id: Annotated[str, Field(title="Id")]
     identity: Ref | None
-    mode: Annotated[Literal["agent", "forward", "voicemail", "rejected"], Field(title="Mode")]
+    mode: Annotated[
+        Literal["agent", "hosted", "forward", "voicemail", "rejected"],
+        Field(
+            description="agent = your agent ran it (Standard) · hosted = the Promptli assistant ran it (Hosted)",
+            title="Mode",
+        ),
+    ]
     outcome: Annotated[
         str | None,
         Field(
@@ -1342,6 +1552,10 @@ class Call(BaseModel):
         ],
         Field(title="Status"),
     ]
+    summary: Annotated[
+        CallSummary | None,
+        Field(description="Written by a model shortly after the call (event call.summary_ready)"),
+    ] = None
     tier: Annotated[
         Literal["standard", "hosted", "premium"] | None,
         Field(

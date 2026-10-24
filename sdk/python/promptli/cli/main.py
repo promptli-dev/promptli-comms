@@ -340,14 +340,21 @@ def call_place(
     reason: Annotated[str | None, typer.Option(help="Why the agent is calling")] = None,
     opening: Annotated[str | None, typer.Option(help="Spoken first when they answer")] = None,
     voicemail: Annotated[str | None, typer.Option(help="Message to leave on a machine")] = None,
+    hosted: Annotated[
+        bool, typer.Option(help="The Promptli assistant talks ($0.10/min); your agent supervises")
+    ] = False,
     as_json: JsonOpt = False,
 ) -> None:
-    """Call a number; your connected agent runs the conversation."""
+    """Call a number; your connected agent runs the conversation (or --hosted: the Promptli assistant)."""
     _out(
         _run(
             _with(
                 lambda p: p.identity(identity).place_call(
-                    to, reason=reason, opening=opening, voicemail_message=voicemail
+                    to,
+                    reason=reason,
+                    opening=opening,
+                    voicemail_message=voicemail,
+                    mode="hosted" if hosted else None,
                 )
             )
         ),
@@ -398,6 +405,63 @@ def call_guide(
 ) -> None:
     """Steer a live call (the caller never hears the guidance itself)."""
     _out(_run(_with(lambda p: p.calls.guide(call_id, text))), True)
+
+
+@call_app.command("brief")
+def call_brief(call_id: str, as_json: JsonOpt = False) -> None:
+    """The brief the hosted assistant works from (goal, facts, guidance, policies)."""
+    b = _run(_with(lambda p: p.calls.brief(call_id)))
+    if as_json:
+        _out(b, True)
+        return
+    brief: dict[str, Any] = b.brief
+    console.print(f"[bold]Brief v{b.version}[/] (updated by {b.updated_by})")
+    console.print(f"Goal: {(brief.get('task') or {}).get('goal')}")
+    facts: list[dict[str, Any]] = brief.get("facts") or []
+    guidance: list[dict[str, Any]] = brief.get("guidance") or []
+    for f in facts:
+        console.print(f"  • {f.get('text')}")
+    for g in guidance:
+        console.print(f"  → {g.get('text')} [dim](next {g.get('ttl_turns', 1)} turn)[/]")
+
+
+@call_app.command("fact")
+def call_fact(call_id: str, text: Annotated[str, typer.Option("--text")]) -> None:
+    """Give the hosted assistant a fact for the rest of the call."""
+    b = _run(_with(lambda p: p.calls.add_fact(call_id, text)))
+    console.print(f"Brief v{b.version}")
+
+
+@call_app.command("answer")
+def call_answer(
+    call_id: str,
+    text: Annotated[str, typer.Option("--text")],
+    request: Annotated[str | None, typer.Option(help="act_… id (default: latest question)")] = None,
+) -> None:
+    """Answer the hosted assistant's question; it tells the caller."""
+    _out(_run(_with(lambda p: p.calls.answer(call_id, text, request_id=request))), True)
+
+
+@call_app.command("say")
+def call_say(
+    call_id: str,
+    text: Annotated[str, typer.Option("--text")],
+    now: Annotated[bool, typer.Option(help="Interrupt and speak immediately")] = False,
+) -> None:
+    """Speak exact words on a hosted call."""
+    _out(_run(_with(lambda p: p.calls.say(call_id, text, mode="now" if now else "next"))), True)
+
+
+@call_app.command("take-over")
+def call_take_over(call_id: str) -> None:
+    """Your connected agent takes over a hosted call (billed Standard)."""
+    _out(_run(_with(lambda p: p.calls.take_over(call_id))), True)
+
+
+@call_app.command("hand-back")
+def call_hand_back(call_id: str) -> None:
+    """Hand a taken-over call back to the Promptli assistant."""
+    _out(_run(_with(lambda p: p.calls.hand_back(call_id))), True)
 
 
 @call_app.command("hangup")

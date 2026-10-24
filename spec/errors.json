@@ -19,6 +19,12 @@
       "status": 413
     },
     {
+      "code": "brief_version_conflict",
+      "description": "The brief changed since base_version; re-read it and apply your patch again.",
+      "retryable": false,
+      "status": 409
+    },
+    {
       "code": "call_not_active",
       "description": "The call is not in progress (it ended or never connected).",
       "retryable": false,

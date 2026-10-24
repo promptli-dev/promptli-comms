@@ -39,6 +39,7 @@ from promptli_gateway.framing import (
     strip_markdown,
 )
 from promptli_gateway.state import GatewayState
+from promptli_gateway.supervisor import SupervisorDriver
 from promptli_gateway.tools.calls import call_tools
 from promptli_gateway.tools.comms import comms_tools
 from promptli_gateway.voice import CallTurnDriver
@@ -82,6 +83,13 @@ class Gateway:
             set_session=self.state.set_session,
             post_call_turn=bool(config.extra.get("post_call_turn", True)),
         )
+        self.supervisor = SupervisorDriver(
+            adapter,
+            self.driver,
+            get_session=self.state.session,
+            set_session=self.state.set_session,
+            post_call_turn=bool(config.extra.get("post_call_turn", True)),
+        )
         self.dispatcher: CallDispatcher | None = None
 
     # ---- lifecycle ----------------------------------------------------------------------------
@@ -96,7 +104,7 @@ class Gateway:
             self.cfg.identity, identity.email_address, status.sms.number, self.cfg.project_dir
         )
         tools = comms_tools(self.client, self.cfg.identity, self._mark_sent) + call_tools(
-            self.client, self.cfg.identity, self.driver.live_call
+            self.client, self.cfg.identity, self.driver.live_call, self.supervisor.live_call
         )
         await self.adapter.start(ctx, tools)
         return ctx
@@ -110,7 +118,11 @@ class Gateway:
             user_agent=f"promptli-gateway {self.adapter.name}",
         )
         async with self.link as link:
-            self.dispatcher = CallDispatcher(link, self.driver.on_call)
+            self.dispatcher = CallDispatcher(
+                link,
+                self.driver.on_call,
+                on_supervise=self.supervisor.on_supervise if self.cfg.extra.get("supervise", True) else None,
+            )
             log.info("gateway connected as @%s (cursor %s)", self.cfg.identity, link.hello.get("cursor"))
             consumer = asyncio.create_task(self._consume(link))
             await self._stopping.wait()

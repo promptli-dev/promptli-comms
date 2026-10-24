@@ -233,12 +233,15 @@ class AsyncIdentity:
         opening: str | None = None,
         context: str | None = None,
         voicemail_message: str | None = None,
+        mode: Literal["standard", "hosted"] | None = None,
         sandbox_script: Sequence[dict[str, Any]] | None = None,
         idempotency_key: str | None = None,
     ) -> m.Call:
         """Call a number. Your agent (connected over Agent Link with the voice capability) runs the call.
 
         `opening` is spoken as soon as the callee answers; `voicemail_message` is left on a machine.
+        `mode="hosted"` lets the Promptli assistant talk from the call brief (Hosted, $0.10/min) while your
+        agent supervises; the default is your agent talking (Standard, $0.05/min).
         In test mode nothing is dialled: `sandbox_script` simulates the callee.
         """
         body: dict[str, Any] = {
@@ -247,6 +250,7 @@ class AsyncIdentity:
             "opening": opening,
             "context": context,
             "voicemail_message": voicemail_message,
+            "mode": mode,
         }
         if sandbox_script is not None:
             body["sandbox_script"] = list(sandbox_script)
@@ -271,6 +275,16 @@ class AsyncIdentity:
         current = (await self.voice_settings()).model_dump(mode="json")
         current.update(changes)
         return m.VoiceSettings.model_validate(await self._t.request("PUT", self._p("/voice"), json=current))
+
+    async def hosted_settings(self) -> m.HostedSettings:
+        """How the Promptli assistant behaves on hosted calls (persona, instructions, facts, tools)."""
+        return m.HostedSettings.model_validate(await self._t.request("GET", self._p("/hosted")))
+
+    async def update_hosted_settings(self, **changes: Any) -> m.HostedSettings:
+        """Change some fields (the rest are kept): persona, instructions, goal, facts, policies, tools."""
+        current = (await self.hosted_settings()).model_dump(mode="json")
+        current.update(changes)
+        return m.HostedSettings.model_validate(await self._t.request("PUT", self._p("/hosted"), json=current))
 
     # ---- unified conversations ----------------------------------------------------------------
     async def conversations(self, *, limit: int = 50) -> list[m.ConversationSummary]:

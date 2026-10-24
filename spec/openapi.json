@@ -22,6 +22,33 @@
         "title": "AgentLinkState",
         "type": "object"
       },
+      "Answer": {
+        "properties": {
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The ask_supervisor action id (act_\u2026); default: the latest open question",
+            "title": "Request Id"
+          },
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "Answer",
+        "type": "object"
+      },
       "ApiKey": {
         "properties": {
           "created_at": {
@@ -377,8 +404,135 @@
         "title": "BillingSegment",
         "type": "object"
       },
+      "BriefHistory": {
+        "properties": {
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BriefVersion"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "call_id",
+          "data"
+        ],
+        "title": "BriefHistory",
+        "type": "object"
+      },
+      "BriefPatch": {
+        "properties": {
+          "base_version": {
+            "description": "The version you read; a newer brief returns 409 brief_version_conflict",
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "ops": {
+            "items": {
+              "$ref": "#/components/schemas/PatchOp"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Ops",
+            "type": "array"
+          }
+        },
+        "required": [
+          "base_version",
+          "ops"
+        ],
+        "title": "BriefPatch",
+        "type": "object"
+      },
+      "BriefVersion": {
+        "properties": {
+          "ops": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ops"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "title": "Updated By",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "updated_by",
+          "updated_at",
+          "ops"
+        ],
+        "title": "BriefVersion",
+        "type": "object"
+      },
+      "BriefView": {
+        "properties": {
+          "brief": {
+            "additionalProperties": true,
+            "description": "persona, instructions, identity, caller, history, task, facts, guidance, policies, tools, voice, call (docs: Call Brief)",
+            "title": "Brief",
+            "type": "object"
+          },
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "title": "Updated By",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "call_id",
+          "version",
+          "brief",
+          "updated_by",
+          "updated_at"
+        ],
+        "title": "BriefView",
+        "type": "object"
+      },
       "Call": {
         "properties": {
+          "actions": {
+            "description": "What the hosted assistant queued: follow-ups, texts/emails to send, supervisor questions",
+            "items": {
+              "$ref": "#/components/schemas/CallAction"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
           "answered_at": {
             "anyOf": [
               {
@@ -507,8 +661,10 @@
             ]
           },
           "mode": {
+            "description": "agent = your agent ran it (Standard) \u00b7 hosted = the Promptli assistant ran it (Hosted)",
             "enum": [
               "agent",
+              "hosted",
               "forward",
               "voicemail",
               "rejected"
@@ -568,6 +724,17 @@
             "title": "Status",
             "type": "string"
           },
+          "summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CallSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Written by a model shortly after the call (event call.summary_ready)"
+          },
           "tier": {
             "anyOf": [
               {
@@ -614,6 +781,58 @@
           "env"
         ],
         "title": "Call",
+        "type": "object"
+      },
+      "CallAction": {
+        "properties": {
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer"
+          },
+          "at": {
+            "title": "At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "follow_up | send_sms | send_email | ask_supervisor | callback | other",
+            "title": "Kind",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "done",
+              "answered",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "summary",
+          "status",
+          "answer",
+          "at"
+        ],
+        "title": "CallAction",
         "type": "object"
       },
       "CallBilling": {
@@ -678,6 +897,38 @@
           "data"
         ],
         "title": "CallPage",
+        "type": "object"
+      },
+      "CallSummary": {
+        "properties": {
+          "action_items": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Action Items",
+            "type": "array"
+          },
+          "at": {
+            "title": "At",
+            "type": "string"
+          },
+          "outcome": {
+            "description": "One short phrase, e.g. \"booked Friday 4pm\" or \"needs callback\"",
+            "title": "Outcome",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "outcome",
+          "action_items",
+          "at"
+        ],
+        "title": "CallSummary",
         "type": "object"
       },
       "Capabilities": {
@@ -2495,6 +2746,133 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HostedPersona": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Default: the identity's display name",
+            "title": "Name"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "e.g. \"front desk for Glow Salon\"",
+            "title": "Role"
+          },
+          "style": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "e.g. \"warm, brief\"",
+            "title": "Style"
+          }
+        },
+        "title": "HostedPersona",
+        "type": "object"
+      },
+      "HostedPolicies": {
+        "properties": {
+          "escalate_if": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Escalate If",
+            "type": "array"
+          },
+          "never": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Never",
+            "type": "array"
+          }
+        },
+        "title": "HostedPolicies",
+        "type": "object"
+      },
+      "HostedSettings": {
+        "description": "How the Promptli assistant behaves when it runs a call for this identity (incoming_action=hosted or\nplace_call(mode=\"hosted\")). Becomes the first version of each call's brief.",
+        "properties": {
+          "facts": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Facts",
+            "type": "array"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "instructions": {
+            "maxLength": 8000,
+            "title": "Instructions",
+            "type": "string"
+          },
+          "persona": {
+            "$ref": "#/components/schemas/HostedPersona"
+          },
+          "policies": {
+            "$ref": "#/components/schemas/HostedPolicies"
+          },
+          "tools": {
+            "description": "Tools the assistant may use. transfer also needs voice.forward_to",
+            "items": {
+              "enum": [
+                "send_sms",
+                "send_email",
+                "transfer",
+                "dtmf",
+                "queue_action",
+                "ask_supervisor",
+                "hang_up",
+                "recall_history"
+              ],
+              "type": "string"
+            },
+            "title": "Tools",
+            "type": "array"
+          }
+        },
+        "required": [
+          "instructions",
+          "tools"
+        ],
+        "title": "HostedSettings",
+        "type": "object"
+      },
       "Identity": {
         "properties": {
           "created_at": {
@@ -3489,6 +3867,33 @@
         "title": "Page[Thread]",
         "type": "object"
       },
+      "PatchOp": {
+        "properties": {
+          "op": {
+            "enum": [
+              "add",
+              "replace",
+              "remove"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "path": {
+            "description": "JSON Pointer, e.g. \"/facts/-\" or \"/task/goal\"",
+            "title": "Path",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "op",
+          "path"
+        ],
+        "title": "PatchOp",
+        "type": "object"
+      },
       "Period": {
         "properties": {
           "end": {
@@ -3622,6 +4027,22 @@
             ],
             "description": "Extra context for the agent",
             "title": "Context"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "standard",
+                  "hosted"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "standard = your connected agent talks ($0.05/min); hosted = the Promptli assistant talks from the call brief ($0.10/min; needs Hosted calls enabled). Default standard",
+            "title": "Mode"
           },
           "opening": {
             "anyOf": [
@@ -3886,6 +4307,32 @@
           "phone"
         ],
         "title": "RuleModes",
+        "type": "object"
+      },
+      "Say": {
+        "properties": {
+          "mode": {
+            "default": "next",
+            "description": "next = after the current sentence; now = interrupt and speak immediately",
+            "enum": [
+              "next",
+              "now"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "text": {
+            "description": "Spoken word for word",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "Say",
         "type": "object"
       },
       "SearchResults": {
@@ -4293,6 +4740,40 @@
           "expires_at"
         ],
         "title": "SignupStatus",
+        "type": "object"
+      },
+      "SteerResult": {
+        "properties": {
+          "applied": {
+            "title": "Applied",
+            "type": "boolean"
+          },
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "when": {
+            "anyOf": [
+              {
+                "enum": [
+                  "now",
+                  "next",
+                  "next_turn"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "When"
+          }
+        },
+        "required": [
+          "call_id",
+          "applied"
+        ],
+        "title": "SteerResult",
         "type": "object"
       },
       "Subscription": {
@@ -5410,9 +5891,10 @@
             "title": "Greeting"
           },
           "incoming_action": {
-            "description": "agent = your connected agent answers (Mode C); forward = ring forward_to; auto_reject",
+            "description": "agent = your connected agent answers (Standard); hosted = the Promptli assistant answers from the call brief (Hosted, needs Hosted calls enabled); forward = ring forward_to; auto_reject",
             "enum": [
               "agent",
+              "hosted",
               "forward",
               "auto_reject"
             ],
@@ -5835,6 +6317,235 @@
         ]
       }
     },
+    "/v1/calls/{call_id}/answer": {
+      "post": {
+        "description": "Answer the hosted assistant's ask_supervisor question; it tells the caller (now if idle).",
+        "operationId": "answerCallQuestion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Answer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SteerResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Answer",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}/brief": {
+      "get": {
+        "description": "The call's brief: what the hosted voice assistant knows and is trying to do. Created when the call\nconnects from the identity's hosted settings, the contact, recent conversations and the call's reason.",
+        "operationId": "getCallBrief",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "An older version (default: current)",
+            "in": "query",
+            "name": "version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "An older version (default: current)",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Brief",
+        "tags": [
+          "Calls"
+        ]
+      },
+      "patch": {
+        "description": "Steer a call by editing its brief with JSON Patch (add facts, change the goal, add guidance or\na policy). Applies from the assistant's next turn. At most 4 patches per minute; tools can only be\nremoved, never added.",
+        "operationId": "patchCallBrief",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BriefPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Brief",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}/brief/history": {
+      "get": {
+        "description": "Every version of the brief with who changed it and the patch they applied.",
+        "operationId": "listCallBriefVersions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BriefHistory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Brief History",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
     "/v1/calls/{call_id}/guidance": {
       "post": {
         "description": "Steer a live call: the agent privately receives your guidance and works it into the conversation\n(e.g. \"move on to pricing\", \"ask for their email\"). The caller never hears the guidance itself.",
@@ -5888,6 +6599,54 @@
           }
         ],
         "summary": "Guide",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}/hand-back": {
+      "post": {
+        "description": "Hand a taken-over call back to the Promptli assistant (billed Hosted again).",
+        "operationId": "handBackCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SteerResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Hand Back",
         "tags": [
           "Calls"
         ]
@@ -5978,6 +6737,112 @@
           }
         ],
         "summary": "Get Recording",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}/say": {
+      "post": {
+        "description": "Speak exact words on a hosted call (the assistant knows it was said).",
+        "operationId": "sayOnCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Say"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SteerResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Say",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}/take-over": {
+      "post": {
+        "description": "Your connected agent takes over a hosted call and speaks every turn (billed Standard from here).",
+        "operationId": "takeOverCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SteerResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Take Over",
         "tags": [
           "Calls"
         ]
@@ -7904,6 +8769,109 @@
         "summary": "Get Conversation",
         "tags": [
           "Conversations"
+        ]
+      }
+    },
+    "/v1/identities/{identity}/hosted": {
+      "get": {
+        "operationId": "getHostedSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostedSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Hosted",
+        "tags": [
+          "Calls"
+        ]
+      },
+      "put": {
+        "description": "Persona, instructions, goal, standing facts, policies and tools for hosted calls.\nReplaces all fields.",
+        "operationId": "updateHostedSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostedSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostedSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Hosted",
+        "tags": [
+          "Calls"
         ]
       }
     },

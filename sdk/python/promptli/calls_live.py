@@ -13,6 +13,18 @@
         if not await calls.handle(frame):
             ...  # a normal event
 
+Hosted calls (Mode A): the Promptli assistant talks and your agent supervises. Pass `on_supervise` and
+accept the seat; you get `call.observed` (both parties), `call.ask_supervisor`, `call.brief.updated` and
+`call.stop`, and can `answer()`, `speak()`, `guide()`, `take_over()` / `hand_back()`:
+
+    async def on_supervise(call: LiveCall) -> None:
+        await call.accept()
+        async for frame in call.frames():
+            if frame["type"] == "call.ask_supervisor":
+                await call.answer(frame["request_id"], "Yes, Sunday 2pm is free.")
+
+    calls = CallDispatcher(link, on_call, on_supervise=on_supervise)
+
 Frames are documented in spec/agent-link.md ("Live calls").
 """
 
@@ -33,6 +45,8 @@ class LiveCall:
     def __init__(self, link: AgentLink, incoming: dict[str, Any]) -> None:
         self.link = link
         self.incoming = incoming
+        # "agent": you talk (Mode C). "supervisor": the Promptli assistant talks; you watch and steer.
+        self.role: str = "supervisor" if incoming.get("type") == "call.supervise" else "agent"
         self.call_id: str = str(incoming["call_id"])
         self.ended = False
         self.accepted = False
@@ -113,6 +127,33 @@ class LiveCall:
             }
         )
 
+    # ---- supervisor controls (hosted calls) --------------------------------------------------------------
+    @property
+    def brief(self) -> dict[str, Any] | None:
+        """The call brief at the time the seat was offered (call.brief.updated frames carry newer ones)."""
+        b: Any = self.incoming.get("brief")
+        return cast("dict[str, Any]", b) if isinstance(b, dict) else None
+
+    async def answer(self, request_id: str, text: str) -> None:
+        """Answer the assistant's ask_supervisor question; it tells the caller."""
+        await self._send({"type": "call.answer", "request_id": request_id, "text": text})
+
+    async def speak(self, text: str, *, now: bool = False) -> None:
+        """Exact words on the call: after the current sentence, or right away (`now=True` interrupts)."""
+        await self._send({"type": "call.say", "text": text, "mode": "now" if now else "next"})
+
+    async def guide(self, text: str) -> None:
+        """Private guidance for the assistant's next reply (never spoken as-is)."""
+        await self._send({"type": "call.guidance", "text": text})
+
+    async def take_over(self) -> None:
+        """Talk yourself from now on: call.start (take_over) then call.transcript turns, like Mode C."""
+        await self._send({"type": "call.take_over"})
+
+    async def hand_back(self) -> None:
+        """Let the Promptli assistant continue the call."""
+        await self._send({"type": "call.hand_back"})
+
     # ---- incoming frames ---------------------------------------------------------------------------------
     def _push(self, frame: dict[str, Any]) -> None:
         self._queue.put_nowait(frame)
@@ -136,9 +177,10 @@ OnCall = Callable[[LiveCall], Awaitable[None]]
 class CallDispatcher:
     """Routes call frames from an AgentLink to LiveCall objects; runs `on_call` for each new call."""
 
-    def __init__(self, link: AgentLink, on_call: OnCall) -> None:
+    def __init__(self, link: AgentLink, on_call: OnCall, *, on_supervise: OnCall | None = None) -> None:
         self.link = link
         self.on_call = on_call
+        self.on_supervise = on_supervise
         self.calls: dict[str, LiveCall] = {}
         self._tasks: set[asyncio.Task[None]] = set()
 
@@ -149,8 +191,11 @@ class CallDispatcher:
         if not kind.startswith("call.") or "seq" in frame:
             return False
         call_id = str(frame.get("call_id") or "")
-        if kind == "call.incoming":
+        if kind in ("call.incoming", "call.supervise"):
             call = LiveCall(self.link, frame)
+            if call.role == "supervisor" and self.on_supervise is None:
+                await call.decline()
+                return True
             self.calls[call_id] = call
             task = asyncio.create_task(self._run(call))
             self._tasks.add(task)
@@ -165,7 +210,8 @@ class CallDispatcher:
 
     async def _run(self, call: LiveCall) -> None:
         try:
-            await self.on_call(call)
+            handler = self.on_supervise if call.role == "supervisor" and self.on_supervise else self.on_call
+            await handler(call)
         except Exception:
             log.exception("call handler failed for %s", call.call_id)
         finally:

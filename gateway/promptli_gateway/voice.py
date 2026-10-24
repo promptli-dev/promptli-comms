@@ -129,6 +129,10 @@ class CallTurnDriver:
         if self.post_call_turn:
             await self._post_call(session_key, info, call.stop_reason)
 
+    async def voice_turn(self, call: LiveCall, session_key: str, turn_id: str, prompt: str) -> None:
+        """One streamed reply on a live call (used by the supervisor after a take-over)."""
+        await self._voice_turn(call, session_key, turn_id, prompt)
+
     async def _voice_turn(
         self, call: LiveCall, session_key: str, turn_id: str, prompt: str, interrupted: set[str] | None = None
     ) -> None:
