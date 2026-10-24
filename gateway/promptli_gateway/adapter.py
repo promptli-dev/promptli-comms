@@ -78,6 +78,9 @@ class RuntimeAdapter(Protocol):
 
     async def interrupt(self, session_key: str) -> None: ...
 
+    # Optional: `async def warm(self, session_key: str, resume_id: str | None) -> None` starts the runtime's
+    # session ahead of time (called when a call rings, so the greeting does not pay the cold start).
+
     async def reset_session(self, session_key: str) -> None: ...
 
     async def close(self) -> None: ...

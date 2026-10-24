@@ -110,6 +110,24 @@ VOICE_RULES = (
 )
 
 
+LANGUAGE_NAMES = {
+    "te": "Telugu", "hi": "Hindi", "ta": "Tamil", "kn": "Kannada", "ml": "Malayalam", "bn": "Bengali",
+    "mr": "Marathi", "gu": "Gujarati", "es": "Spanish", "fr": "French", "de": "German", "pt": "Portuguese",
+    "it": "Italian", "ja": "Japanese", "ko": "Korean", "zh": "Chinese", "ar": "Arabic", "nl": "Dutch",
+}  # fmt: skip
+
+
+def language_note(language: str | None) -> str:
+    base = (language or "en").split("-")[0].lower()
+    name = LANGUAGE_NAMES.get(base)
+    if not name:
+        return ""
+    return (
+        f"Speak {name} on this call, in natural spoken {name} written in its own script "
+        "(the voice reads it aloud). Switch only if the caller clearly prefers another language."
+    )
+
+
 def _who(call: dict[str, Any]) -> str:
     contact = call.get("contact") or {}
     number = call.get("from") if call.get("direction") == "inbound" else call.get("to")
@@ -134,6 +152,9 @@ def frame_call_start(call: dict[str, Any], *, greet: bool, identity_name: str) -
     memories = (call.get("contact") or {}).get("memories") or []
     if memories:
         lines.append("What you know about them: " + "; ".join(str(m.get("memory", m)) for m in memories[:10]))
+    note = language_note((call.get("voice") or {}).get("language"))
+    if note:
+        lines.append(note)
     if greet:
         lines.append(f"Greet them now in one short sentence, as {identity_name}.")
     return "\n".join(lines)

@@ -53,9 +53,14 @@ class CallTurnDriver:
         return self.active.get(call_id)
 
     async def on_call(self, call: LiveCall) -> None:
+        session_key = call.contact_key
+        warm: Any = getattr(self.adapter, "warm", None)
+        warming: asyncio.Task[Any] | None = None
+        if callable(warm):  # start the runtime's session now; the greeting turn then skips the cold start
+            pending: Any = warm(session_key, self.get_session(session_key))
+            warming = asyncio.ensure_future(pending)
         await call.accept()
         self.active[call.call_id] = call
-        session_key = call.contact_key
         info = {**call.incoming}
         header: str | None = None  # call context, sent with the first turn
         barge: dict[str, Any] | None = None
@@ -114,6 +119,8 @@ class CallTurnDriver:
                     )
         finally:
             self.active.pop(call.call_id, None)
+            if warming is not None and not warming.done():
+                warming.cancel()
             if running is not None and not running.done():
                 await self.adapter.interrupt(session_key)
                 running.cancel()
