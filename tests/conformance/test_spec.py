@@ -59,6 +59,12 @@ def test_facade_covers_core_operations() -> None:
         "sandboxInboundText": "/v1/sandbox/texts/inbound",
         "whoami": "/v1/whoami",
         "getUsage": "/v1/usage",
+        "getCallBrief": "/brief",
+        "answerCallQuestion": "/answer",
+        "sayOnCall": "/say",
+        "takeOverCall": "/take-over",
+        "handBackCall": "/hand-back",
+        "getHostedSettings": '"/hosted"',
     }
     for op, fragment in path_fragments.items():
         assert op in ops, f"{op} missing from spec"

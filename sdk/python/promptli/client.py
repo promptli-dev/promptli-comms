@@ -12,6 +12,7 @@ import httpx
 
 from promptli._generated import models as m
 from promptli._http import DEFAULT_BASE_URL, Transport
+from promptli.errors import PromptliError
 from promptli.identity import AsyncIdentity
 
 T = TypeVar("T")
@@ -188,6 +189,56 @@ class Calls(_Namespace):
             "POST", f"/v1/calls/{call_id}/guidance", json={"text": text}
         )
         return res
+
+    # ---- hosted calls: the brief and live steering (docs: Call Brief) -------------------------------------
+    async def brief(self, call_id: str, *, version: int | None = None) -> m.BriefView:
+        """What the hosted assistant knows and is trying to do on this call."""
+        return m.BriefView.model_validate(
+            await self._t.request("GET", f"/v1/calls/{call_id}/brief", params={"version": version})
+        )
+
+    async def patch_brief(self, call_id: str, base_version: int, ops: list[dict[str, Any]]) -> m.BriefView:
+        """JSON Patch the brief (e.g. {"op": "add", "path": "/facts/-", "value": {"text": "..."}}).
+        Raises ConflictError (brief_version_conflict) when someone changed it since `base_version`."""
+        return m.BriefView.model_validate(
+            await self._t.request(
+                "PATCH", f"/v1/calls/{call_id}/brief", json={"base_version": base_version, "ops": ops}
+            )
+        )
+
+    async def add_fact(self, call_id: str, text: str) -> m.BriefView:
+        """Convenience: read the brief and append a fact (retries once on a version conflict)."""
+        for attempt in range(2):
+            b = await self.brief(call_id)
+            try:
+                return await self.patch_brief(
+                    call_id, b.version, [{"op": "add", "path": "/facts/-", "value": {"text": text}}]
+                )
+            except PromptliError as e:
+                if e.code != "brief_version_conflict" or attempt:
+                    raise
+        raise AssertionError("unreachable")
+
+    async def answer(self, call_id: str, text: str, *, request_id: str | None = None) -> m.SteerResult:
+        """Answer the hosted assistant's ask_supervisor question (default: the latest open one)."""
+        body: dict[str, Any] = {"text": text, **({"request_id": request_id} if request_id else {})}
+        return m.SteerResult.model_validate(
+            await self._t.request("POST", f"/v1/calls/{call_id}/answer", json=body)
+        )
+
+    async def say(self, call_id: str, text: str, *, mode: Literal["next", "now"] = "next") -> m.SteerResult:
+        """Speak exact words on a hosted call; `now` interrupts."""
+        return m.SteerResult.model_validate(
+            await self._t.request("POST", f"/v1/calls/{call_id}/say", json={"text": text, "mode": mode})
+        )
+
+    async def take_over(self, call_id: str) -> m.SteerResult:
+        """Your connected agent takes over a hosted call (billed Standard from here)."""
+        return m.SteerResult.model_validate(await self._t.request("POST", f"/v1/calls/{call_id}/take-over"))
+
+    async def hand_back(self, call_id: str) -> m.SteerResult:
+        """Hand a taken-over call back to the Promptli assistant (billed Hosted again)."""
+        return m.SteerResult.model_validate(await self._t.request("POST", f"/v1/calls/{call_id}/hand-back"))
 
     async def hangup(self, call_id: str) -> m.Call:
         return m.Call.model_validate(await self._t.request("POST", f"/v1/calls/{call_id}/hangup"))
