@@ -226,3 +226,32 @@ async def test_unheard_guidance_is_reapplied_and_interrupted_turns_never_apologi
     )
     assert "Hyderabad flat" in prompts[-2] and "any other flats?" in prompts[-2]  # last is the post-call turn
     assert not any("Sorry, I ran into a problem" in str(f.get("delta")) for f in link.sent)
+
+
+async def test_runtime_is_warmed_when_the_call_rings_and_language_is_passed_on() -> None:
+    adapter = SlowAdapter()
+    warmed: list[str] = []
+    prompts: list[str] = []
+
+    async def warm(session_key: str, resume_id: str | None) -> None:
+        warmed.append(session_key)
+
+    adapter.warm = warm  # type: ignore[attr-defined]
+    original = adapter.run_turn
+
+    def spy(session_key: str, prompt: str, **kw: Any) -> AsyncIterator[TurnChunk]:
+        prompts.append(prompt)
+        return original(session_key, prompt, **kw)
+
+    adapter.run_turn = spy  # type: ignore[method-assign]
+    await drive(
+        [
+            {**INCOMING, "voice": {"voice_id": "v", "language": "te-IN"}},
+            {"type": "call.start", "turn_id": "t0", "greet": True},
+            {"type": "call.stop", "reason": "caller_hangup"},
+        ],
+        adapter,
+        gap=0.3,
+    )
+    assert warmed == ["ctc_1"]
+    assert "Speak Telugu" in prompts[0]

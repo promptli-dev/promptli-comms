@@ -357,6 +357,10 @@ def call_voice(
     incoming: Annotated[str | None, typer.Option(help="agent | forward | auto_reject")] = None,
     forward_to: Annotated[str | None, typer.Option()] = None,
     voice_id: Annotated[str | None, typer.Option()] = None,
+    language: Annotated[
+        str | None,
+        typer.Option(help="BCP-47 (en, en-IN, te, hi); picks a matching voice unless --voice-id"),
+    ] = None,
     recording: Annotated[bool | None, typer.Option("--recording/--no-recording")] = None,
     as_json: JsonOpt = False,
 ) -> None:
@@ -367,10 +371,17 @@ def call_voice(
             "incoming_action": incoming,
             "forward_to": forward_to,
             "voice_id": voice_id,
+            "language": language,
             "recording": recording,
         }.items()
         if v is not None
     }
+    if language and not voice_id:
+        base = language.split("-")[0]
+        voices = _run(_with(lambda p: p.calls.voices(language=base)))
+        if base != "en" and voices:
+            changes["voice_id"] = voices[0].id
+            console.print(f"[dim]voice: {voices[0].name}[/]")
 
     async def go(p: AsyncPromptli) -> Any:
         me = p.identity(identity)
