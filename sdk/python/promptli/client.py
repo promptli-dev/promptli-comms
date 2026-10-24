@@ -288,6 +288,11 @@ class AsyncPromptli:
     async def whoami(self) -> m.WhoamiResponse:
         return m.WhoamiResponse.model_validate(await self._t.request("GET", "/v1/whoami"))
 
+    async def usage(self, period: str | None = None) -> m.Usage:
+        """Call minutes for a billing period (YYYY-MM, default current): seconds per tier
+        (Standard / Hosted / Premium), the included-minutes pool and any overage."""
+        return m.Usage.model_validate(await self._t.request("GET", "/v1/usage", params={"period": period}))
+
     @staticmethod
     async def create_signup(
         human_email: str,

@@ -58,6 +58,40 @@ class AttachmentIn(BaseModel):
     inline: Annotated[bool | None, Field(title="Inline")] = False
 
 
+class BillingSegment(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    billed_seconds: Annotated[
+        int, Field(description="Rounded up to the next 6-second block", title="Billed Seconds")
+    ]
+    ended_at: Annotated[str | None, Field(title="Ended At")]
+    engine: Annotated[
+        str, Field(description="mode_c | hosted_cascaded | openai_realtime | forward", title="Engine")
+    ]
+    pool_seconds: Annotated[
+        int,
+        Field(
+            description="Included-minute seconds used: billed_seconds x tier ratio (1/2/5)",
+            title="Pool Seconds",
+        ),
+    ]
+    seconds: Annotated[int, Field(description="Exact connected seconds in this segment", title="Seconds")]
+    started_at: Annotated[str, Field(title="Started At")]
+    tier: Annotated[Literal["standard", "hosted", "premium"], Field(title="Tier")]
+
+
+class CallBilling(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    billed_seconds: Annotated[int, Field(title="Billed Seconds")]
+    metered: Annotated[bool, Field(description="False in test mode: tracked, never billed", title="Metered")]
+    pool_seconds: Annotated[int, Field(title="Pool Seconds")]
+    seconds: Annotated[int, Field(title="Seconds")]
+    segments: Annotated[list[BillingSegment], Field(title="Segments")]
+
+
 class Capabilities(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -629,6 +663,15 @@ class OptInList(BaseModel):
     data: Annotated[list[OptIn], Field(title="Data")]
 
 
+class Overage(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    allowed: Annotated[bool, Field(title="Allowed")]
+    amount_cents: Annotated[int, Field(description="pool_seconds / 60 * $0.05", title="Amount Cents")]
+    pool_seconds: Annotated[int, Field(title="Pool Seconds")]
+
+
 class PageContact(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -651,6 +694,15 @@ class PageMessage(BaseModel):
     )
     data: Annotated[list[Message], Field(title="Data")]
     next_cursor: Annotated[str | None, Field(title="Next Cursor")] = None
+
+
+class Period(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    end: Annotated[str, Field(title="End")]
+    key: Annotated[str, Field(description="YYYY-MM", title="Key")]
+    start: Annotated[str, Field(title="Start")]
 
 
 class PhoneNumber(BaseModel):
@@ -727,6 +779,18 @@ class PlaceCall(BaseModel):
         VoicemailMessage | None,
         Field(description="Left on an answering machine; without it we hang up", title="Voicemail Message"),
     ] = None
+
+
+class Pool(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    included_seconds: Annotated[
+        int | None,
+        Field(description="null = unlimited (enterprise, internal) or test mode", title="Included Seconds"),
+    ]
+    remaining_seconds: Annotated[int | None, Field(title="Remaining Seconds")]
+    used_seconds: Annotated[int, Field(title="Used Seconds")]
 
 
 class ProvisionNumber(BaseModel):
@@ -977,6 +1041,22 @@ class ThreadDetail(BaseModel):
     unread_count: Annotated[int, Field(title="Unread Count")]
 
 
+class TierUsage(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    billed_seconds: Annotated[
+        int, Field(description="Seconds after rounding each segment up to 6 s", title="Billed Seconds")
+    ]
+    calls: Annotated[int, Field(title="Calls")]
+    label: Annotated[str, Field(title="Label")]
+    pool_seconds: Annotated[int, Field(description="billed_seconds x ratio", title="Pool Seconds")]
+    price_cents_per_minute: Annotated[int, Field(title="Price Cents Per Minute")]
+    ratio: Annotated[int, Field(description="Included-minute seconds used per billed second", title="Ratio")]
+    seconds: Annotated[int, Field(description="Exact connected seconds", title="Seconds")]
+    tier: Annotated[Literal["standard", "hosted", "premium"], Field(title="Tier")]
+
+
 class TimelineItem(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1060,6 +1140,21 @@ class UpsertIdentity(BaseModel):
     )
     description: Annotated[Description1 | None, Field(title="Description")] = None
     display_name: Annotated[str | None, Field(title="Display Name")] = None
+
+
+class Usage(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    env: Annotated[Literal["live", "test"], Field(title="Env")]
+    metered: Annotated[
+        bool, Field(description="False in test mode: usage is tracked but never billed", title="Metered")
+    ]
+    overage: Overage
+    period: Period
+    plan: Annotated[Literal["free", "developer", "startup", "enterprise"], Field(title="Plan")]
+    pool: Pool
+    tiers: Annotated[list[TierUsage], Field(title="Tiers")]
 
 
 class ValidationError(BaseModel):
@@ -1209,6 +1304,9 @@ class Call(BaseModel):
         str | None,
         Field(description="Answering-machine detection result for outbound calls", title="Answered By"),
     ]
+    billing: Annotated[
+        CallBilling | None, Field(description="Metered call time, available when the call has ended")
+    ]
     contact: Ref | None
     direction: Annotated[Literal["inbound", "outbound"], Field(title="Direction")]
     duration_sec: Annotated[float | None, Field(title="Duration Sec")]
@@ -1244,10 +1342,14 @@ class Call(BaseModel):
         ],
         Field(title="Status"),
     ]
-    to: Annotated[str, Field(title="To")]
-    units: Annotated[
-        float | None, Field(description="Voice units billed (1 per minute, 6-second blocks)", title="Units")
+    tier: Annotated[
+        Literal["standard", "hosted", "premium"] | None,
+        Field(
+            description="standard = your agent ($0.05/min) · hosted = our assistant ($0.10/min) · premium = OpenAI Realtime ($0.25/min). Set once the call connects",
+            title="Tier",
+        ),
     ]
+    to: Annotated[str, Field(title="To")]
 
 
 class CallPage(BaseModel):
