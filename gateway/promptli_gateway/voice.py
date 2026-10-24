@@ -18,6 +18,7 @@ from promptli.calls_live import LiveCall
 from promptli_gateway.adapter import RuntimeAdapter, TextDelta, ToolActivity, TurnDone, TurnKind
 from promptli_gateway.framing import (
     frame_call_dtmf,
+    frame_call_guidance,
     frame_call_start,
     frame_call_turn,
     frame_post_call,
@@ -58,6 +59,9 @@ class CallTurnDriver:
         info = {**call.incoming}
         header: str | None = None  # call context, sent with the first turn
         barge: dict[str, Any] | None = None
+        guidance: list[str] = []  # owner steering to fold into the next reply
+        guidance_turns: dict[str, str] = {}  # turn id -> guidance it carries (re-queued if never heard)
+        interrupted: set[str] = set()  # turns the caller cut off: never apologise for them
         running: asyncio.Task[None] | None = None
 
         async def start_turn(turn_id: str, prompt: str) -> None:
@@ -70,7 +74,7 @@ class CallTurnDriver:
             if header:
                 prompt = f"{header}\n\n{prompt}"
                 header = None
-            running = asyncio.create_task(self._voice_turn(call, session_key, turn_id, prompt))
+            running = asyncio.create_task(self._voice_turn(call, session_key, turn_id, prompt, interrupted))
 
         try:
             async for frame in call.frames():
@@ -86,9 +90,22 @@ class CallTurnDriver:
                 elif kind == "call.transcript" and frame.get("is_final") and frame.get("turn_id"):
                     prompt = frame_call_turn(str(frame.get("text") or ""), barge=barge)
                     barge = None
+                    if guidance:
+                        prompt = "\n".join(frame_call_guidance(g) for g in guidance) + "\n" + prompt
+                        guidance.clear()
                     await start_turn(str(frame["turn_id"]), prompt)
+                elif kind == "call.guidance" and frame.get("text"):
+                    if frame.get("turn_id"):  # the agent is idle: speak now
+                        guidance_turns[str(frame["turn_id"])] = str(frame["text"])
+                        await start_turn(str(frame["turn_id"]), frame_call_guidance(str(frame["text"])))
+                    else:  # mid-reply: shape the next one
+                        guidance.append(str(frame["text"]))
                 elif kind == "call.barge_in":
                     barge = frame
+                    cut = str(frame.get("turn_id") or "")
+                    interrupted.add(cut)
+                    if cut in guidance_turns and not str(frame.get("spoken_so_far") or "").strip():
+                        guidance.append(guidance_turns.pop(cut))  # never heard: apply to the next reply
                     if running is not None and not running.done():
                         await self.adapter.interrupt(session_key)
                 elif kind == "call.dtmf" and frame.get("digits"):
@@ -105,7 +122,10 @@ class CallTurnDriver:
         if self.post_call_turn:
             await self._post_call(session_key, info, call.stop_reason)
 
-    async def _voice_turn(self, call: LiveCall, session_key: str, turn_id: str, prompt: str) -> None:
+    async def _voice_turn(
+        self, call: LiveCall, session_key: str, turn_id: str, prompt: str, interrupted: set[str] | None = None
+    ) -> None:
+        cut_off = interrupted if interrupted is not None else set[str]()
         speech = SpeechFilter()
         sent = False
         filler_sent = False
@@ -128,6 +148,8 @@ class CallTurnDriver:
                         self.set_session(session_key, chunk.session_id)
                     final = chunk.text
                 else:  # TurnError
+                    if turn_id in cut_off:
+                        return  # the caller interrupted this turn; its error is just the interruption
                     log.warning("voice turn error on %s: %s", call.call_id, chunk.message)
                     if not sent:
                         await call.say(SORRY, turn_id=turn_id)
@@ -143,7 +165,7 @@ class CallTurnDriver:
             raise
         except Exception:
             log.exception("voice turn failed on %s", call.call_id)
-            if not sent:
+            if not sent and turn_id not in cut_off:
                 await call.say(SORRY, turn_id=turn_id)
 
     async def _post_call(self, session_key: str, info: dict[str, Any], reason: str | None) -> None:

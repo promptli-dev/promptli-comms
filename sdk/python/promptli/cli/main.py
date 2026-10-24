@@ -338,6 +338,14 @@ def call_transcript(call_id: str, as_json: JsonOpt = False) -> None:
         console.print(f"[{colour}]{seg.party:>6}[/]  {seg.text}{cut}")
 
 
+@call_app.command("guide")
+def call_guide(
+    call_id: str, text: Annotated[str, typer.Option("--text", help="What the agent should do")]
+) -> None:
+    """Steer a live call (the caller never hears the guidance itself)."""
+    _out(_run(_with(lambda p: p.calls.guide(call_id, text))), True)
+
+
 @call_app.command("hangup")
 def call_hangup(call_id: str, as_json: JsonOpt = False) -> None:
     _out(_run(_with(lambda p: p.calls.hangup(call_id))), as_json, CALL_COLUMNS)

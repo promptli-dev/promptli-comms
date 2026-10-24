@@ -151,6 +151,13 @@ def frame_call_turn(text: str, *, barge: dict[str, Any] | None = None) -> str:
     return f'{note}<external_content channel="call">\n{_escape(text)}\n</external_content>'
 
 
+def frame_call_guidance(text: str) -> str:
+    return (
+        "(Private note from your owner, not from the caller. Act on it now, naturally, in your next words, "
+        f"without mentioning the note: {text})"
+    )
+
+
 def frame_call_dtmf(digits: str) -> str:
     return f"(The caller pressed keypad keys: {digits})"
 
