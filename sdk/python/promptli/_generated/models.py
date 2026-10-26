@@ -95,6 +95,16 @@ class BillingSegment(BaseModel):
     tier: Annotated[Literal["standard", "hosted", "premium"], Field(title="Tier")]
 
 
+class BillingSubscription(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    current_period_end: Annotated[str | None, Field(title="Current Period End")]
+    interval: Annotated[Literal["month", "year"] | None, Field(title="Interval")]
+    plan: Annotated[Literal["developer", "startup"] | None, Field(title="Plan")]
+    status: Annotated[str | None, Field(title="Status")]
+
+
 class BriefVersion(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -196,6 +206,14 @@ class ChannelState(BaseModel):
     number: Annotated[str | None, Field(title="Number")] = None
     ready: Annotated[bool, Field(title="Ready")]
     status: Annotated[str | None, Field(title="Status")] = None
+
+
+class CheckoutRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    interval: Annotated[Literal["month", "year"] | None, Field(title="Interval")] = "month"
+    plan: Annotated[Literal["developer", "startup"], Field(title="Plan")]
 
 
 class Contact(BaseModel):
@@ -964,6 +982,13 @@ class Recording(BaseModel):
     duration_sec: Annotated[float | None, Field(title="Duration Sec")]
 
 
+class Redirect(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    url: Annotated[str, Field(description="Open this Stripe-hosted page", title="Url")]
+
+
 class Ref(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1005,6 +1030,65 @@ class Say(BaseModel):
     text: Annotated[
         str, Field(description="Spoken word for word", max_length=1000, min_length=1, title="Text")
     ]
+
+
+class Scheduled(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    attempts: Annotated[int, Field(title="Attempts")]
+    created_at: Annotated[str, Field(title="Created At")]
+    error: Annotated[str | None, Field(title="Error")]
+    id: Annotated[str, Field(title="Id")]
+    identity: Annotated[str | None, Field(title="Identity")]
+    kind: Annotated[Literal["call", "text"], Field(title="Kind")]
+    payload: Annotated[dict[str, Any], Field(title="Payload")]
+    result: Annotated[str | None, Field(description="The call_ / txt_ id once it ran", title="Result")]
+    run_at: Annotated[str, Field(title="Run At")]
+    status: Annotated[Literal["scheduled", "running", "done", "failed", "canceled"], Field(title="Status")]
+
+
+class Context1(RootModel[str]):
+    root: Annotated[str, Field(max_length=8000, title="Context")]
+
+
+class Opening1(RootModel[str]):
+    root: Annotated[str, Field(max_length=1000, title="Opening")]
+
+
+class Reason1(RootModel[str]):
+    root: Annotated[str, Field(max_length=500, title="Reason")]
+
+
+class VoicemailMessage1(RootModel[str]):
+    root: Annotated[str, Field(max_length=1000, title="Voicemail Message")]
+
+
+class ScheduledCall(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    context: Annotated[Context1 | None, Field(title="Context")] = None
+    mode: Annotated[Literal["standard", "hosted"] | None, Field(title="Mode")] = None
+    opening: Annotated[Opening1 | None, Field(title="Opening")] = None
+    reason: Annotated[Reason1 | None, Field(title="Reason")] = None
+    to: Annotated[str, Field(title="To")]
+    voicemail_message: Annotated[VoicemailMessage1 | None, Field(title="Voicemail Message")] = None
+
+
+class ScheduledList(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: Annotated[list[Scheduled], Field(title="Data")]
+
+
+class ScheduledText(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    body: Annotated[str, Field(max_length=1600, min_length=1, title="Body")]
+    to: Annotated[str | list[str], Field(title="To")]
 
 
 class SearchResults(BaseModel):
@@ -1470,6 +1554,15 @@ class AvailableNumber(BaseModel):
     region: Annotated[str | None, Field(title="Region")]
 
 
+class BillingAccount(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    has_customer: Annotated[bool, Field(title="Has Customer")]
+    plan: Annotated[Literal["free", "developer", "startup", "enterprise"], Field(title="Plan")]
+    subscription: BillingSubscription | None
+
+
 class BriefHistory(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1611,6 +1704,20 @@ class ConversationList(BaseModel):
         populate_by_name=True,
     )
     data: Annotated[list[ConversationSummary], Field(title="Data")]
+
+
+class CreateScheduled(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    call: ScheduledCall | None = None
+    run_at: Annotated[
+        AwareDatetime,
+        Field(
+            description="When to place the call or send the text (ISO 8601, with timezone)", title="Run At"
+        ),
+    ]
+    text: ScheduledText | None = None
 
 
 class Draft(BaseModel):

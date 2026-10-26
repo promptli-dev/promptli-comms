@@ -276,6 +276,24 @@ class AsyncIdentity:
         current.update(changes)
         return m.VoiceSettings.model_validate(await self._t.request("PUT", self._p("/voice"), json=current))
 
+    # ---- scheduled calls and texts ------------------------------------------------------------
+    async def schedule_call(self, to: str, run_at: str, **fields: Any) -> m.Scheduled:
+        """Place a call later. `run_at` is ISO 8601 with a timezone; fields as for place_call (reason,
+        opening, context, voicemail_message, mode)."""
+        body = {"run_at": run_at, "call": {"to": to, **{k: v for k, v in fields.items() if v is not None}}}
+        return m.Scheduled.model_validate(await self._t.request("POST", self._p("/scheduled"), json=body))
+
+    async def schedule_text(self, to: str | list[str], body: str, run_at: str) -> m.Scheduled:
+        payload = {"run_at": run_at, "text": {"to": to, "body": body}}
+        return m.Scheduled.model_validate(await self._t.request("POST", self._p("/scheduled"), json=payload))
+
+    async def scheduled(self, *, include_done: bool = False) -> list[m.Scheduled]:
+        res = await self._t.request("GET", self._p("/scheduled"), params={"include_done": include_done})
+        return [m.Scheduled.model_validate(x) for x in res["data"]]
+
+    async def cancel_scheduled(self, scheduled_id: str) -> m.Scheduled:
+        return m.Scheduled.model_validate(await self._t.request("DELETE", f"/v1/scheduled/{scheduled_id}"))
+
     async def hosted_settings(self) -> m.HostedSettings:
         """How the Promptli assistant behaves on hosted calls (persona, instructions, facts, tools)."""
         return m.HostedSettings.model_validate(await self._t.request("GET", self._p("/hosted")))

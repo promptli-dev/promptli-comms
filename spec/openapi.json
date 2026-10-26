@@ -345,6 +345,41 @@
         "title": "AvailableNumber",
         "type": "object"
       },
+      "BillingAccount": {
+        "properties": {
+          "has_customer": {
+            "title": "Has Customer",
+            "type": "boolean"
+          },
+          "plan": {
+            "enum": [
+              "free",
+              "developer",
+              "startup",
+              "enterprise"
+            ],
+            "title": "Plan",
+            "type": "string"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BillingSubscription"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "plan",
+          "subscription",
+          "has_customer"
+        ],
+        "title": "BillingAccount",
+        "type": "object"
+      },
       "BillingSegment": {
         "properties": {
           "billed_seconds": {
@@ -402,6 +437,70 @@
           "pool_seconds"
         ],
         "title": "BillingSegment",
+        "type": "object"
+      },
+      "BillingSubscription": {
+        "properties": {
+          "current_period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "enum": [
+                  "month",
+                  "year"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "enum": [
+                  "developer",
+                  "startup"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "status",
+          "plan",
+          "interval",
+          "current_period_end"
+        ],
+        "title": "BillingSubscription",
         "type": "object"
       },
       "BriefHistory": {
@@ -1091,6 +1190,32 @@
         "title": "ChannelStatus",
         "type": "object"
       },
+      "CheckoutRequest": {
+        "properties": {
+          "interval": {
+            "default": "month",
+            "enum": [
+              "month",
+              "year"
+            ],
+            "title": "Interval",
+            "type": "string"
+          },
+          "plan": {
+            "enum": [
+              "developer",
+              "startup"
+            ],
+            "title": "Plan",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan"
+        ],
+        "title": "CheckoutRequest",
+        "type": "object"
+      },
       "Contact": {
         "properties": {
           "company": {
@@ -1674,6 +1799,41 @@
           "target"
         ],
         "title": "CreateRule",
+        "type": "object"
+      },
+      "CreateScheduled": {
+        "properties": {
+          "call": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledCall"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_at": {
+            "description": "When to place the call or send the text (ISO 8601, with timezone)",
+            "format": "date-time",
+            "title": "Run At",
+            "type": "string"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "run_at"
+        ],
+        "title": "CreateScheduled",
         "type": "object"
       },
       "CreateSubscription": {
@@ -4215,6 +4375,20 @@
         "title": "Recording",
         "type": "object"
       },
+      "Redirect": {
+        "properties": {
+          "url": {
+            "description": "Open this Stripe-hosted page",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "Redirect",
+        "type": "object"
+      },
       "Ref": {
         "properties": {
           "handle": {
@@ -4333,6 +4507,220 @@
           "text"
         ],
         "title": "Say",
+        "type": "object"
+      },
+      "Scheduled": {
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity"
+          },
+          "kind": {
+            "enum": [
+              "call",
+              "text"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The call_ / txt_ id once it ran",
+            "title": "Result"
+          },
+          "run_at": {
+            "title": "Run At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "running",
+              "done",
+              "failed",
+              "canceled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "identity",
+          "kind",
+          "run_at",
+          "status",
+          "payload",
+          "result",
+          "error",
+          "attempts",
+          "created_at"
+        ],
+        "title": "Scheduled",
+        "type": "object"
+      },
+      "ScheduledCall": {
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "standard",
+                  "hosted"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "opening": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          },
+          "voicemail_message": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voicemail Message"
+          }
+        },
+        "required": [
+          "to"
+        ],
+        "title": "ScheduledCall",
+        "type": "object"
+      },
+      "ScheduledList": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Scheduled"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ScheduledList",
+        "type": "object"
+      },
+      "ScheduledText": {
+        "properties": {
+          "body": {
+            "maxLength": 1600,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "title": "To"
+          }
+        },
+        "required": [
+          "to",
+          "body"
+        ],
+        "title": "ScheduledText",
         "type": "object"
       },
       "SearchResults": {
@@ -6267,6 +6655,106 @@
         "summary": "Revoke Api Key",
         "tags": [
           "API Keys"
+        ]
+      }
+    },
+    "/v1/billing": {
+      "get": {
+        "operationId": "getBilling",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingAccount"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Billing",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/v1/billing/checkout": {
+      "post": {
+        "description": "Start a Stripe Checkout to subscribe (or change plan). The plan applies when Stripe confirms.",
+        "operationId": "createBillingCheckout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Checkout",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/v1/billing/portal": {
+      "post": {
+        "description": "Stripe Customer Portal: payment method, invoices, plan changes and cancellation.",
+        "operationId": "createBillingPortal",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Portal",
+        "tags": [
+          "Billing"
         ]
       }
     },
@@ -10187,6 +10675,119 @@
         ]
       }
     },
+    "/v1/identities/{identity}/scheduled": {
+      "get": {
+        "operationId": "listScheduled",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_done",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Done",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Scheduled",
+        "tags": [
+          "Scheduled"
+        ]
+      },
+      "post": {
+        "description": "Schedule an outbound call or text. It runs at `run_at` with the same rules as sending it now\n(contact rules, plan limits, included minutes), as the identity.",
+        "operationId": "createScheduled",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScheduled"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scheduled"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Scheduled",
+        "tags": [
+          "Scheduled"
+        ]
+      }
+    },
     "/v1/identities/{identity}/signing-key": {
       "get": {
         "operationId": "getSigningKey",
@@ -11230,6 +11831,53 @@
         "summary": "Inbound Text",
         "tags": [
           "Sandbox"
+        ]
+      }
+    },
+    "/v1/scheduled/{scheduled_id}": {
+      "delete": {
+        "operationId": "cancelScheduled",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduled_id",
+            "required": true,
+            "schema": {
+              "title": "Scheduled Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scheduled"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Scheduled",
+        "tags": [
+          "Scheduled"
         ]
       }
     },
