@@ -108,9 +108,8 @@ def autostart_status(runtime: str) -> tuple[bool, str]:
         u = unit_path(runtime)
         if not u.exists():
             return False, "not installed"
-        r = subprocess.run(
-            ["systemctl", "--user", "is-active", u.name], capture_output=True, text=True, check=False
-        )
+        cmd = ["systemctl", "--user", "is-active", u.name]
+        r = subprocess.run(cmd, capture_output=True, text=True, check=False)  # noqa: S603
         state = r.stdout.strip() or "unknown"
         return state == "active", state
     if sys.platform != "darwin":
