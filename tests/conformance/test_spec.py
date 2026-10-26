@@ -59,6 +59,8 @@ def test_facade_covers_core_operations() -> None:
         "sandboxInboundText": "/v1/sandbox/texts/inbound",
         "whoami": "/v1/whoami",
         "getUsage": "/v1/usage",
+        "createScheduled": '"/scheduled"',
+        "cancelScheduled": "/v1/scheduled/",
         "getCallBrief": "/brief",
         "answerCallQuestion": "/answer",
         "sayOnCall": "/say",

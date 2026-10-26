@@ -364,7 +364,7 @@
           "subscription": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/promptli_api__routers__v1__billing__Subscription"
+                "$ref": "#/components/schemas/BillingSubscription"
               },
               {
                 "type": "null"
@@ -437,6 +437,70 @@
           "pool_seconds"
         ],
         "title": "BillingSegment",
+        "type": "object"
+      },
+      "BillingSubscription": {
+        "properties": {
+          "current_period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "enum": [
+                  "month",
+                  "year"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "enum": [
+                  "developer",
+                  "startup"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "status",
+          "plan",
+          "interval",
+          "current_period_end"
+        ],
+        "title": "BillingSubscription",
         "type": "object"
       },
       "BriefHistory": {
@@ -1735,6 +1799,41 @@
           "target"
         ],
         "title": "CreateRule",
+        "type": "object"
+      },
+      "CreateScheduled": {
+        "properties": {
+          "call": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledCall"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_at": {
+            "description": "When to place the call or send the text (ISO 8601, with timezone)",
+            "format": "date-time",
+            "title": "Run At",
+            "type": "string"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "run_at"
+        ],
+        "title": "CreateScheduled",
         "type": "object"
       },
       "CreateSubscription": {
@@ -4410,6 +4509,220 @@
         "title": "Say",
         "type": "object"
       },
+      "Scheduled": {
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity"
+          },
+          "kind": {
+            "enum": [
+              "call",
+              "text"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The call_ / txt_ id once it ran",
+            "title": "Result"
+          },
+          "run_at": {
+            "title": "Run At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "running",
+              "done",
+              "failed",
+              "canceled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "identity",
+          "kind",
+          "run_at",
+          "status",
+          "payload",
+          "result",
+          "error",
+          "attempts",
+          "created_at"
+        ],
+        "title": "Scheduled",
+        "type": "object"
+      },
+      "ScheduledCall": {
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "standard",
+                  "hosted"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "opening": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          },
+          "voicemail_message": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voicemail Message"
+          }
+        },
+        "required": [
+          "to"
+        ],
+        "title": "ScheduledCall",
+        "type": "object"
+      },
+      "ScheduledList": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Scheduled"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ScheduledList",
+        "type": "object"
+      },
+      "ScheduledText": {
+        "properties": {
+          "body": {
+            "maxLength": 1600,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "title": "To"
+          }
+        },
+        "required": [
+          "to",
+          "body"
+        ],
+        "title": "ScheduledText",
+        "type": "object"
+      },
       "SearchResults": {
         "properties": {
           "data": {
@@ -4851,6 +5164,83 @@
         "title": "SteerResult",
         "type": "object"
       },
+      "Subscription": {
+        "properties": {
+          "consecutive_failures": {
+            "title": "Consecutive Failures",
+            "type": "integer"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "event_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Event Types",
+            "type": "array"
+          },
+          "has_auth_token": {
+            "title": "Has Auth Token",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "identity": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "disabled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "identity",
+          "url",
+          "event_types",
+          "description",
+          "has_auth_token",
+          "status",
+          "consecutive_failures",
+          "created_at"
+        ],
+        "title": "Subscription",
+        "type": "object"
+      },
       "SubscriptionCreated": {
         "properties": {
           "signing_secret": {
@@ -4866,7 +5256,7 @@
             "title": "Signing Secret"
           },
           "subscription": {
-            "$ref": "#/components/schemas/promptli_api__models__Subscription"
+            "$ref": "#/components/schemas/Subscription"
           }
         },
         "required": [
@@ -4880,7 +5270,7 @@
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/promptli_api__models__Subscription"
+              "$ref": "#/components/schemas/Subscription"
             },
             "title": "Data",
             "type": "array"
@@ -6068,147 +6458,6 @@
           "role"
         ],
         "title": "WhoamiResponse",
-        "type": "object"
-      },
-      "promptli_api__models__Subscription": {
-        "properties": {
-          "consecutive_failures": {
-            "title": "Consecutive Failures",
-            "type": "integer"
-          },
-          "created_at": {
-            "title": "Created At",
-            "type": "string"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "event_types": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Event Types",
-            "type": "array"
-          },
-          "has_auth_token": {
-            "title": "Has Auth Token",
-            "type": "boolean"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "identity": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Identity"
-          },
-          "status": {
-            "enum": [
-              "active",
-              "disabled"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "url": {
-            "title": "Url",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "identity",
-          "url",
-          "event_types",
-          "description",
-          "has_auth_token",
-          "status",
-          "consecutive_failures",
-          "created_at"
-        ],
-        "title": "Subscription",
-        "type": "object"
-      },
-      "promptli_api__routers__v1__billing__Subscription": {
-        "properties": {
-          "current_period_end": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current Period End"
-          },
-          "interval": {
-            "anyOf": [
-              {
-                "enum": [
-                  "month",
-                  "year"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Interval"
-          },
-          "plan": {
-            "anyOf": [
-              {
-                "enum": [
-                  "developer",
-                  "startup"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Plan"
-          },
-          "status": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Status"
-          }
-        },
-        "required": [
-          "status",
-          "plan",
-          "interval",
-          "current_period_end"
-        ],
-        "title": "Subscription",
         "type": "object"
       }
     },
@@ -10426,6 +10675,119 @@
         ]
       }
     },
+    "/v1/identities/{identity}/scheduled": {
+      "get": {
+        "operationId": "listScheduled",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_done",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Done",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Scheduled",
+        "tags": [
+          "Scheduled"
+        ]
+      },
+      "post": {
+        "description": "Schedule an outbound call or text. It runs at `run_at` with the same rules as sending it now\n(contact rules, plan limits, included minutes), as the identity.",
+        "operationId": "createScheduled",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScheduled"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scheduled"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Scheduled",
+        "tags": [
+          "Scheduled"
+        ]
+      }
+    },
     "/v1/identities/{identity}/signing-key": {
       "get": {
         "operationId": "getSigningKey",
@@ -11472,6 +11834,53 @@
         ]
       }
     },
+    "/v1/scheduled/{scheduled_id}": {
+      "delete": {
+        "operationId": "cancelScheduled",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduled_id",
+            "required": true,
+            "schema": {
+              "title": "Scheduled Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scheduled"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Scheduled",
+        "tags": [
+          "Scheduled"
+        ]
+      }
+    },
     "/v1/signup": {
       "post": {
         "description": "No auth required. Creates an org, an identity and a provisional key; emails a code to the human.",
@@ -12284,7 +12693,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/promptli_api__models__Subscription"
+                  "$ref": "#/components/schemas/Subscription"
                 }
               }
             },
@@ -12340,7 +12749,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/promptli_api__models__Subscription"
+                  "$ref": "#/components/schemas/Subscription"
                 }
               }
             },

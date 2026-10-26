@@ -1107,6 +1107,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/identities/{identity}/scheduled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Scheduled */
+        get: operations["listScheduled"];
+        put?: never;
+        /**
+         * Create Scheduled
+         * @description Schedule an outbound call or text. It runs at `run_at` with the same rules as sending it now
+         *     (contact rules, plan limits, included minutes), as the identity.
+         */
+        post: operations["createScheduled"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/identities/{identity}/signing-key": {
         parameters: {
             query?: never;
@@ -1382,6 +1404,23 @@ export interface paths {
          */
         post: operations["sandboxInboundText"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/scheduled/{scheduled_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel Scheduled */
+        delete: operations["cancelScheduled"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1845,7 +1884,7 @@ export interface components {
              * @enum {string}
              */
             plan: "free" | "developer" | "startup" | "enterprise";
-            subscription: components["schemas"]["promptli_api__routers__v1__billing__Subscription"] | null;
+            subscription: components["schemas"]["BillingSubscription"] | null;
         };
         /** BillingSegment */
         BillingSegment: {
@@ -1878,6 +1917,17 @@ export interface components {
              * @enum {string}
              */
             tier: "standard" | "hosted" | "premium";
+        };
+        /** BillingSubscription */
+        BillingSubscription: {
+            /** Current Period End */
+            current_period_end: string | null;
+            /** Interval */
+            interval: ("month" | "year") | null;
+            /** Plan */
+            plan: ("developer" | "startup") | null;
+            /** Status */
+            status: string | null;
         };
         /** BriefHistory */
         BriefHistory: {
@@ -2311,6 +2361,17 @@ export interface components {
             match_type: "exact_email" | "domain" | "exact_phone";
             /** Target */
             target: string;
+        };
+        /** CreateScheduled */
+        CreateScheduled: {
+            call?: components["schemas"]["ScheduledCall"] | null;
+            /**
+             * Run At
+             * Format: date-time
+             * @description When to place the call or send the text (ISO 8601, with timezone)
+             */
+            run_at: string;
+            text?: components["schemas"]["ScheduledText"] | null;
         };
         /** CreateSubscription */
         CreateSubscription: {
@@ -3227,6 +3288,67 @@ export interface components {
              */
             text: string;
         };
+        /** Scheduled */
+        Scheduled: {
+            /** Attempts */
+            attempts: number;
+            /** Created At */
+            created_at: string;
+            /** Error */
+            error: string | null;
+            /** Id */
+            id: string;
+            /** Identity */
+            identity: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "call" | "text";
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /**
+             * Result
+             * @description The call_ / txt_ id once it ran
+             */
+            result: string | null;
+            /** Run At */
+            run_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "scheduled" | "running" | "done" | "failed" | "canceled";
+        };
+        /** ScheduledCall */
+        ScheduledCall: {
+            /** Context */
+            context?: string | null;
+            /** Mode */
+            mode?: ("standard" | "hosted") | null;
+            /** Opening */
+            opening?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /** To */
+            to: string;
+            /** Voicemail Message */
+            voicemail_message?: string | null;
+        };
+        /** ScheduledList */
+        ScheduledList: {
+            /** Data */
+            data: components["schemas"]["Scheduled"][];
+        };
+        /** ScheduledText */
+        ScheduledText: {
+            /** Body */
+            body: string;
+            /** To */
+            to: string | string[];
+        };
         /** SearchResults */
         SearchResults: {
             /** Data */
@@ -3384,6 +3506,32 @@ export interface components {
             /** When */
             when?: ("now" | "next" | "next_turn") | null;
         };
+        /** Subscription */
+        Subscription: {
+            /** Consecutive Failures */
+            consecutive_failures: number;
+            /** Created At */
+            created_at: string;
+            /** Description */
+            description: string | null;
+            /** Event Types */
+            event_types: string[];
+            /** Has Auth Token */
+            has_auth_token: boolean;
+            /** Id */
+            id: string;
+            /** Identity */
+            identity: {
+                [key: string]: string;
+            } | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "disabled";
+            /** Url */
+            url: string;
+        };
         /** SubscriptionCreated */
         SubscriptionCreated: {
             /**
@@ -3391,12 +3539,12 @@ export interface components {
              * @description whsec_… returned only when this call created the identity's signing key
              */
             signing_secret: string | null;
-            subscription: components["schemas"]["promptli_api__models__Subscription"];
+            subscription: components["schemas"]["Subscription"];
         };
         /** SubscriptionList */
         SubscriptionList: {
             /** Data */
-            data: components["schemas"]["promptli_api__models__Subscription"][];
+            data: components["schemas"]["Subscription"][];
         };
         /** TestResult */
         TestResult: {
@@ -3797,43 +3945,6 @@ export interface components {
             role: string | null;
             /** Scopes */
             scopes: string[];
-        };
-        /** Subscription */
-        promptli_api__models__Subscription: {
-            /** Consecutive Failures */
-            consecutive_failures: number;
-            /** Created At */
-            created_at: string;
-            /** Description */
-            description: string | null;
-            /** Event Types */
-            event_types: string[];
-            /** Has Auth Token */
-            has_auth_token: boolean;
-            /** Id */
-            id: string;
-            /** Identity */
-            identity: {
-                [key: string]: string;
-            } | null;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "active" | "disabled";
-            /** Url */
-            url: string;
-        };
-        /** Subscription */
-        promptli_api__routers__v1__billing__Subscription: {
-            /** Current Period End */
-            current_period_end: string | null;
-            /** Interval */
-            interval: ("month" | "year") | null;
-            /** Plan */
-            plan: ("developer" | "startup") | null;
-            /** Status */
-            status: string | null;
         };
     };
     responses: never;
@@ -6241,6 +6352,74 @@ export interface operations {
             };
         };
     };
+    listScheduled: {
+        parameters: {
+            query?: {
+                include_done?: boolean;
+            };
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduledList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createScheduled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateScheduled"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Scheduled"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getSigningKey: {
         parameters: {
             query?: never;
@@ -6828,6 +7007,37 @@ export interface operations {
             };
         };
     };
+    cancelScheduled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduled_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Scheduled"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     createSignup: {
         parameters: {
             query?: never;
@@ -7293,7 +7503,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["promptli_api__models__Subscription"];
+                    "application/json": components["schemas"]["Subscription"];
                 };
             };
             /** @description Validation Error */
@@ -7357,7 +7567,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["promptli_api__models__Subscription"];
+                    "application/json": components["schemas"]["Subscription"];
                 };
             };
             /** @description Validation Error */

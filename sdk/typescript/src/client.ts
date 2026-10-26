@@ -153,6 +153,26 @@ export class AgentIdentity {
     return this.t.request("PUT", this.p("/hosted"), { body: { ...current, ...changes } });
   }
 
+  // ---- scheduled calls and texts ----
+  /** Place a call later (`runAt`: ISO 8601 with timezone, or a Date). */
+  scheduleCall(to: string, runAt: string | Date, opts: Omit<S["ScheduledCall"], "to"> = {}): Promise<S["Scheduled"]> {
+    const run_at = typeof runAt === "string" ? runAt : runAt.toISOString();
+    return this.t.request("POST", this.p("/scheduled"), { body: { run_at, call: { to, ...opts } } });
+  }
+
+  scheduleText(to: string | string[], body: string, runAt: string | Date): Promise<S["Scheduled"]> {
+    const run_at = typeof runAt === "string" ? runAt : runAt.toISOString();
+    return this.t.request("POST", this.p("/scheduled"), { body: { run_at, text: { to, body } } });
+  }
+
+  async scheduled(includeDone = false): Promise<S["Scheduled"][]> {
+    return (await this.t.request<S["ScheduledList"]>("GET", this.p("/scheduled"), { query: { include_done: includeDone } })).data;
+  }
+
+  cancelScheduled(id: string): Promise<S["Scheduled"]> {
+    return this.t.request("DELETE", `/v1/scheduled/${enc(id)}`);
+  }
+
   // ---- people ----
   async conversations(limit = 50): Promise<S["ConversationSummary"][]> {
     return (await this.t.request<S["ConversationList"]>("GET", this.p("/conversations"), { query: { limit } })).data;

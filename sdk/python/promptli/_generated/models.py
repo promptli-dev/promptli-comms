@@ -95,6 +95,16 @@ class BillingSegment(BaseModel):
     tier: Annotated[Literal["standard", "hosted", "premium"], Field(title="Tier")]
 
 
+class BillingSubscription(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    current_period_end: Annotated[str | None, Field(title="Current Period End")]
+    interval: Annotated[Literal["month", "year"] | None, Field(title="Interval")]
+    plan: Annotated[Literal["developer", "startup"] | None, Field(title="Plan")]
+    status: Annotated[str | None, Field(title="Status")]
+
+
 class BriefVersion(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1022,6 +1032,65 @@ class Say(BaseModel):
     ]
 
 
+class Scheduled(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    attempts: Annotated[int, Field(title="Attempts")]
+    created_at: Annotated[str, Field(title="Created At")]
+    error: Annotated[str | None, Field(title="Error")]
+    id: Annotated[str, Field(title="Id")]
+    identity: Annotated[str | None, Field(title="Identity")]
+    kind: Annotated[Literal["call", "text"], Field(title="Kind")]
+    payload: Annotated[dict[str, Any], Field(title="Payload")]
+    result: Annotated[str | None, Field(description="The call_ / txt_ id once it ran", title="Result")]
+    run_at: Annotated[str, Field(title="Run At")]
+    status: Annotated[Literal["scheduled", "running", "done", "failed", "canceled"], Field(title="Status")]
+
+
+class Context1(RootModel[str]):
+    root: Annotated[str, Field(max_length=8000, title="Context")]
+
+
+class Opening1(RootModel[str]):
+    root: Annotated[str, Field(max_length=1000, title="Opening")]
+
+
+class Reason1(RootModel[str]):
+    root: Annotated[str, Field(max_length=500, title="Reason")]
+
+
+class VoicemailMessage1(RootModel[str]):
+    root: Annotated[str, Field(max_length=1000, title="Voicemail Message")]
+
+
+class ScheduledCall(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    context: Annotated[Context1 | None, Field(title="Context")] = None
+    mode: Annotated[Literal["standard", "hosted"] | None, Field(title="Mode")] = None
+    opening: Annotated[Opening1 | None, Field(title="Opening")] = None
+    reason: Annotated[Reason1 | None, Field(title="Reason")] = None
+    to: Annotated[str, Field(title="To")]
+    voicemail_message: Annotated[VoicemailMessage1 | None, Field(title="Voicemail Message")] = None
+
+
+class ScheduledList(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: Annotated[list[Scheduled], Field(title="Data")]
+
+
+class ScheduledText(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    body: Annotated[str, Field(max_length=1600, min_length=1, title="Body")]
+    to: Annotated[str | list[str], Field(title="To")]
+
+
 class SearchResults(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1128,6 +1197,42 @@ class SteerResult(BaseModel):
     applied: Annotated[bool, Field(title="Applied")]
     call_id: Annotated[str, Field(title="Call Id")]
     when: Annotated[Literal["now", "next", "next_turn"] | None, Field(title="When")] = None
+
+
+class Subscription(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    consecutive_failures: Annotated[int, Field(title="Consecutive Failures")]
+    created_at: Annotated[str, Field(title="Created At")]
+    description: Annotated[str | None, Field(title="Description")]
+    event_types: Annotated[list[str], Field(title="Event Types")]
+    has_auth_token: Annotated[bool, Field(title="Has Auth Token")]
+    id: Annotated[str, Field(title="Id")]
+    identity: Annotated[dict[str, str] | None, Field(title="Identity")]
+    status: Annotated[Literal["active", "disabled"], Field(title="Status")]
+    url: Annotated[str, Field(title="Url")]
+
+
+class SubscriptionCreated(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    signing_secret: Annotated[
+        str | None,
+        Field(
+            description="whsec_… returned only when this call created the identity's signing key",
+            title="Signing Secret",
+        ),
+    ]
+    subscription: Subscription
+
+
+class SubscriptionList(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    data: Annotated[list[Subscription], Field(title="Data")]
 
 
 class TestResult(BaseModel):
@@ -1431,31 +1536,6 @@ class WhoamiResponse(BaseModel):
     scopes: Annotated[list[str], Field(title="Scopes")]
 
 
-class PromptliApiModelsSubscription(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    consecutive_failures: Annotated[int, Field(title="Consecutive Failures")]
-    created_at: Annotated[str, Field(title="Created At")]
-    description: Annotated[str | None, Field(title="Description")]
-    event_types: Annotated[list[str], Field(title="Event Types")]
-    has_auth_token: Annotated[bool, Field(title="Has Auth Token")]
-    id: Annotated[str, Field(title="Id")]
-    identity: Annotated[dict[str, str] | None, Field(title="Identity")]
-    status: Annotated[Literal["active", "disabled"], Field(title="Status")]
-    url: Annotated[str, Field(title="Url")]
-
-
-class PromptliApiRoutersV1BillingSubscription(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    current_period_end: Annotated[str | None, Field(title="Current Period End")]
-    interval: Annotated[Literal["month", "year"] | None, Field(title="Interval")]
-    plan: Annotated[Literal["developer", "startup"] | None, Field(title="Plan")]
-    status: Annotated[str | None, Field(title="Status")]
-
-
 class AgentLinkState(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1480,7 +1560,7 @@ class BillingAccount(BaseModel):
     )
     has_customer: Annotated[bool, Field(title="Has Customer")]
     plan: Annotated[Literal["free", "developer", "startup", "enterprise"], Field(title="Plan")]
-    subscription: PromptliApiRoutersV1BillingSubscription | None
+    subscription: BillingSubscription | None
 
 
 class BriefHistory(BaseModel):
@@ -1626,6 +1706,20 @@ class ConversationList(BaseModel):
     data: Annotated[list[ConversationSummary], Field(title="Data")]
 
 
+class CreateScheduled(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    call: ScheduledCall | None = None
+    run_at: Annotated[
+        AwareDatetime,
+        Field(
+            description="When to place the call or send the text (ISO 8601, with timezone)", title="Run At"
+        ),
+    ]
+    text: ScheduledText | None = None
+
+
 class Draft(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -1727,27 +1821,6 @@ class SignupCreated(BaseModel):
     next_step: Annotated[str, Field(title="Next Step")]
     org_id: Annotated[str, Field(title="Org Id")]
     status: Annotated[Literal["pending"], Field(title="Status")]
-
-
-class SubscriptionCreated(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    signing_secret: Annotated[
-        str | None,
-        Field(
-            description="whsec_… returned only when this call created the identity's signing key",
-            title="Signing Secret",
-        ),
-    ]
-    subscription: PromptliApiModelsSubscription
-
-
-class SubscriptionList(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    data: Annotated[list[PromptliApiModelsSubscription], Field(title="Data")]
 
 
 class Text(BaseModel):
