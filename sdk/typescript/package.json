@@ -1,0 +1,26 @@
+{
+  "name": "@promptli/sdk",
+  "version": "0.1.0",
+  "description": "Promptli Comms: email, SMS and phone calls for AI agents (TypeScript / JavaScript SDK).",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist", "README.md"],
+  "engines": { "node": ">=18" },
+  "sideEffects": false,
+  "repository": { "type": "git", "url": "https://github.com/promptli-dev/promptli-comms", "directory": "sdk/typescript" },
+  "scripts": {
+    "generate": "openapi-typescript ../../spec/openapi.json -o src/schema.d.ts",
+    "build": "tsc -p tsconfig.build.json && cp src/schema.d.ts dist/schema.d.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.4",
+    "@types/node": "^22.0.0"
+  }
+}

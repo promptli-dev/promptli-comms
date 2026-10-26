@@ -345,6 +345,41 @@
         "title": "AvailableNumber",
         "type": "object"
       },
+      "BillingAccount": {
+        "properties": {
+          "has_customer": {
+            "title": "Has Customer",
+            "type": "boolean"
+          },
+          "plan": {
+            "enum": [
+              "free",
+              "developer",
+              "startup",
+              "enterprise"
+            ],
+            "title": "Plan",
+            "type": "string"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/promptli_api__routers__v1__billing__Subscription"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "plan",
+          "subscription",
+          "has_customer"
+        ],
+        "title": "BillingAccount",
+        "type": "object"
+      },
       "BillingSegment": {
         "properties": {
           "billed_seconds": {
@@ -1089,6 +1124,32 @@
           "issues"
         ],
         "title": "ChannelStatus",
+        "type": "object"
+      },
+      "CheckoutRequest": {
+        "properties": {
+          "interval": {
+            "default": "month",
+            "enum": [
+              "month",
+              "year"
+            ],
+            "title": "Interval",
+            "type": "string"
+          },
+          "plan": {
+            "enum": [
+              "developer",
+              "startup"
+            ],
+            "title": "Plan",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan"
+        ],
+        "title": "CheckoutRequest",
         "type": "object"
       },
       "Contact": {
@@ -4215,6 +4276,20 @@
         "title": "Recording",
         "type": "object"
       },
+      "Redirect": {
+        "properties": {
+          "url": {
+            "description": "Open this Stripe-hosted page",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "Redirect",
+        "type": "object"
+      },
       "Ref": {
         "properties": {
           "handle": {
@@ -4776,83 +4851,6 @@
         "title": "SteerResult",
         "type": "object"
       },
-      "Subscription": {
-        "properties": {
-          "consecutive_failures": {
-            "title": "Consecutive Failures",
-            "type": "integer"
-          },
-          "created_at": {
-            "title": "Created At",
-            "type": "string"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "event_types": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Event Types",
-            "type": "array"
-          },
-          "has_auth_token": {
-            "title": "Has Auth Token",
-            "type": "boolean"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "identity": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Identity"
-          },
-          "status": {
-            "enum": [
-              "active",
-              "disabled"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "url": {
-            "title": "Url",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "identity",
-          "url",
-          "event_types",
-          "description",
-          "has_auth_token",
-          "status",
-          "consecutive_failures",
-          "created_at"
-        ],
-        "title": "Subscription",
-        "type": "object"
-      },
       "SubscriptionCreated": {
         "properties": {
           "signing_secret": {
@@ -4868,7 +4866,7 @@
             "title": "Signing Secret"
           },
           "subscription": {
-            "$ref": "#/components/schemas/Subscription"
+            "$ref": "#/components/schemas/promptli_api__models__Subscription"
           }
         },
         "required": [
@@ -4882,7 +4880,7 @@
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/Subscription"
+              "$ref": "#/components/schemas/promptli_api__models__Subscription"
             },
             "title": "Data",
             "type": "array"
@@ -6071,6 +6069,147 @@
         ],
         "title": "WhoamiResponse",
         "type": "object"
+      },
+      "promptli_api__models__Subscription": {
+        "properties": {
+          "consecutive_failures": {
+            "title": "Consecutive Failures",
+            "type": "integer"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "event_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Event Types",
+            "type": "array"
+          },
+          "has_auth_token": {
+            "title": "Has Auth Token",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "identity": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "disabled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "identity",
+          "url",
+          "event_types",
+          "description",
+          "has_auth_token",
+          "status",
+          "consecutive_failures",
+          "created_at"
+        ],
+        "title": "Subscription",
+        "type": "object"
+      },
+      "promptli_api__routers__v1__billing__Subscription": {
+        "properties": {
+          "current_period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "enum": [
+                  "month",
+                  "year"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "enum": [
+                  "developer",
+                  "startup"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "status",
+          "plan",
+          "interval",
+          "current_period_end"
+        ],
+        "title": "Subscription",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -6267,6 +6406,106 @@
         "summary": "Revoke Api Key",
         "tags": [
           "API Keys"
+        ]
+      }
+    },
+    "/v1/billing": {
+      "get": {
+        "operationId": "getBilling",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingAccount"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Billing",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/v1/billing/checkout": {
+      "post": {
+        "description": "Start a Stripe Checkout to subscribe (or change plan). The plan applies when Stripe confirms.",
+        "operationId": "createBillingCheckout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Checkout",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/v1/billing/portal": {
+      "post": {
+        "description": "Stripe Customer Portal: payment method, invoices, plan changes and cancellation.",
+        "operationId": "createBillingPortal",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Portal",
+        "tags": [
+          "Billing"
         ]
       }
     },
@@ -12045,7 +12284,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Subscription"
+                  "$ref": "#/components/schemas/promptli_api__models__Subscription"
                 }
               }
             },
@@ -12101,7 +12340,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Subscription"
+                  "$ref": "#/components/schemas/promptli_api__models__Subscription"
                 }
               }
             },

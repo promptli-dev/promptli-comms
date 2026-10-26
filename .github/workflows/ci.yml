@@ -24,3 +24,22 @@ jobs:
       - name: Generated models match spec
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
         run: ./scripts/generate_models.sh && git diff --exit-code sdk/python/promptli/_generated
+  typescript:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk/typescript
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Types match spec
+        run: pnpm run generate && git diff --exit-code src/schema.d.ts
+      - run: pnpm run typecheck
+      - run: pnpm run test
+      - run: pnpm run build
