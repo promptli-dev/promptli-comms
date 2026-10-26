@@ -6,6 +6,9 @@ requires-python = ">=3.11"
 license = "MIT"
 dependencies = ["promptli", "mcp>=1.20"]
 
+[project.scripts]
+promptli-agent = "promptli_gateway.cli:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
