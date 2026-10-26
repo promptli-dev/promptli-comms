@@ -1,0 +1,69 @@
+name: Release
+# Tag-driven publishing with trusted publishing (OIDC): no PyPI or npm token is stored in GitHub.
+#   py-v0.1.0  → promptli + promptli-gateway on PyPI (both must carry that version)
+#   ts-v0.1.0  → @promptli/sdk on npm
+# One-time owner setup: add this repo + workflow "release.yml" (+ environment) as a trusted publisher
+# on PyPI for both projects and on npm for @promptli/sdk.
+on:
+  push:
+    tags: ["py-v*", "ts-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    if: startsWith(github.ref_name, 'py-v')
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.28"
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - run: uv run pytest
+      - name: Versions match the tag
+        run: |
+          want="${GITHUB_REF_NAME#py-v}"
+          for f in sdk/python/pyproject.toml gateway/pyproject.toml; do
+            got=$(sed -n 's/^version = "\(.*\)"/\1/p' "$f" | head -1)
+            [ "$got" = "$want" ] || { echo "$f is $got, tag is $want"; exit 1; }
+          done
+      - run: uv build --package promptli -o dist && uv build --package promptli-gateway -o dist
+      - run: uvx twine check dist/*
+      - name: Wheels install and run in a clean venv
+        run: |
+          uv venv /tmp/v && uv pip install --python /tmp/v/bin/python dist/*.whl
+          /tmp/v/bin/promptli --help >/dev/null
+          /tmp/v/bin/python -I -c "import promptli, promptli_gateway.core, promptli_gateway.mcp_stdio"
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  typescript:
+    if: startsWith(github.ref_name, 'ts-v')
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      id-token: write
+    defaults:
+      run:
+        working-directory: sdk/typescript
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm >= 11.5.1.
+      - run: npm install -g npm@11
+      - run: pnpm install --frozen-lockfile
+      - name: Version matches the tag
+        run: test "$(node -p 'require("./package.json").version')" = "${GITHUB_REF_NAME#ts-v}"
+      - run: pnpm run typecheck && pnpm run test && pnpm run build
+      - run: npm publish --access public --provenance

@@ -2,9 +2,29 @@
 name = "promptli-gateway"
 version = "0.1.0"
 description = "Runtime-agnostic plugin core for Promptli Comms (Agent Link, sessions, setup, doctor)"
+readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = ["promptli", "mcp>=1.20"]
+authors = [{ name = "Promptli" }]
+keywords = ["ai-agents", "email", "sms", "voice", "telephony", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications",
+    "Typing :: Typed",
+]
+dependencies = ["promptli>=0.1.0,<0.2", "mcp>=1.20", "httpx>=0.27"]
+
+[project.urls]
+Homepage = "https://comms.promptli.com"
+Documentation = "https://comms.promptli.com/docs"
+Repository = "https://github.com/promptli-dev/promptli-comms"
+Issues = "https://github.com/promptli-dev/promptli-comms/issues"
 
 [build-system]
 requires = ["hatchling"]
