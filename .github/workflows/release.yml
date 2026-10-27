@@ -2,8 +2,8 @@ name: Release
 # Tag-driven publishing with trusted publishing (OIDC): no PyPI or npm token is stored in GitHub.
 #   py-v0.1.0  → promptli + promptli-gateway on PyPI (both must carry that version)
 #   ts-v0.1.0  → @promptli/sdk on npm
-# One-time owner setup: add this repo + workflow "release.yml" (+ environment) as a trusted publisher
-# on PyPI for both projects and on npm for @promptli/sdk.
+# One-time owner setup (RELEASING.md): PyPI trusted publishers promptli → environment "pypi" and
+# promptli-gateway → environment "pypi-gateway"; npm trusted publisher for @promptli/sdk → "npm".
 on:
   push:
     tags: ["py-v*", "ts-v*"]
@@ -13,11 +13,10 @@ permissions:
 
 jobs:
   python:
+    # Build + verify both packages once; each is published from its own environment (PyPI allows one
+    # pending trusted publisher per repo/workflow/environment, so promptli and promptli-gateway differ).
     if: startsWith(github.ref_name, 'py-v')
     runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -33,14 +32,47 @@ jobs:
             got=$(sed -n 's/^version = "\(.*\)"/\1/p' "$f" | head -1)
             [ "$got" = "$want" ] || { echo "$f is $got, tag is $want"; exit 1; }
           done
-      - run: uv build --package promptli -o dist && uv build --package promptli-gateway -o dist
-      - run: uvx twine check dist/*
+      - run: uv build --package promptli -o dist/promptli && uv build --package promptli-gateway -o dist/gateway
+      - run: uvx twine check dist/*/*
       - name: Wheels install and run in a clean venv
         run: |
-          uv venv /tmp/v && uv pip install --python /tmp/v/bin/python dist/*.whl
+          uv venv /tmp/v && uv pip install --python /tmp/v/bin/python dist/*/*.whl
           /tmp/v/bin/promptli --help >/dev/null
           /tmp/v/bin/python -I -c "import promptli, promptli_gateway.core, promptli_gateway.mcp_stdio"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish-promptli:
+    needs: python
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/promptli/
+
+  publish-gateway:
+    needs: publish-promptli # the gateway depends on promptli
+    runs-on: ubuntu-latest
+    environment: pypi-gateway
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/gateway/
 
   typescript:
     if: startsWith(github.ref_name, 'ts-v')
