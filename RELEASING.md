@@ -6,8 +6,9 @@ token lives in GitHub.
 ## One-time setup (owner)
 - **PyPI:** for each of `promptli` and `promptli-gateway`, add a trusted publisher: owner `promptli-dev`, repo
   `promptli-comms`, workflow `release.yml`, environment `pypi` for `promptli` and `pypi-gateway` for `promptli-gateway` (PyPI allows only one pending publisher per repo/workflow/environment). For a first release, use a *pending* publisher.
-- **npm:** the package is the unscoped `promptli` (the `@promptli` npm org name is taken). Publish 0.1.0 once by hand
-  (`npm publish` in `sdk/typescript`), then on the `promptli` package add a trusted publisher for the same repo, with
+- **npm:** the package is `@promptli-npm/sdk` (the `@promptli` org is taken and npm blocks the plain name `promptli`
+  as too similar to `prompt`/`prompts`). Publish 0.1.0 once by hand (`npm publish --access public` in `sdk/typescript`),
+  then on that package add a trusted publisher for the same repo, with
   workflow `release.yml` and environment `npm`.
 - **GitHub:** create the environments `pypi`, `pypi-gateway` and `npm`, and add required reviewers if you want a manual gate.
 
@@ -22,7 +23,7 @@ The workflow:
 - builds, runs `twine check`, and installs the wheels into a clean venv;
 - publishes.
 
-## TypeScript (`promptli` on npm)
+## TypeScript (`@promptli-npm/sdk` on npm)
 1. Bump `version` in `sdk/typescript/package.json`.
 2. Merge the change to main.
 3. Tag and push: `git tag ts-v0.1.0 && git push origin ts-v0.1.0`.

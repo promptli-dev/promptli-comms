@@ -1,10 +1,10 @@
-# promptli (TypeScript / JavaScript SDK)
+# @promptli-npm/sdk
 
 Email, SMS and phone calls for AI agents: the TypeScript / JavaScript SDK for [Promptli Comms](https://comms.promptli.com).
 No runtime dependencies (standard `fetch` + Web Crypto), so it runs on Node 18+, Bun, Deno, Workers and browsers.
 
 ```ts
-import { Promptli, verifyWebhook } from "promptli";
+import { Promptli, verifyWebhook } from "@promptli-npm/sdk";
 
 const p = new Promptli({ apiKey: process.env.PROMPTLI_API_KEY });
 const glow = p.identity("glow");
