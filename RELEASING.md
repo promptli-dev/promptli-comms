@@ -5,10 +5,10 @@ token lives in GitHub.
 
 ## One-time setup (owner)
 - **PyPI:** for each of `promptli` and `promptli-gateway`, add a trusted publisher: owner `promptli-dev`, repo
-  `promptli-comms`, workflow `release.yml`, environment `pypi`. For a first release, use a *pending* publisher.
+  `promptli-comms`, workflow `release.yml`, environment `pypi` for `promptli` and `pypi-gateway` for `promptli-gateway` (PyPI allows only one pending publisher per repo/workflow/environment). For a first release, use a *pending* publisher.
 - **npm:** create the `@promptli` org scope. On `@promptli/sdk`, add a trusted publisher for the same repo, with
   workflow `release.yml` and environment `npm`.
-- **GitHub:** create the environments `pypi` and `npm`, and add required reviewers if you want a manual gate.
+- **GitHub:** create the environments `pypi`, `pypi-gateway` and `npm`, and add required reviewers if you want a manual gate.
 
 ## Python (`promptli`, `promptli-gateway`)
 1. Bump `version` in `sdk/python/pyproject.toml` and `gateway/pyproject.toml`. They release together, and the
