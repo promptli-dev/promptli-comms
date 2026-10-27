@@ -1,5 +1,5 @@
 {
-  "name": "@promptli/sdk",
+  "name": "promptli",
   "version": "0.1.0",
   "description": "Promptli Comms: email, SMS and phone calls for AI agents (TypeScript / JavaScript SDK).",
   "license": "MIT",
