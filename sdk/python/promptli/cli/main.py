@@ -21,6 +21,8 @@ from rich.console import Console
 from rich.table import Table
 
 from promptli import AsyncPromptli, PromptliError
+from promptli._http import DEFAULT_BASE_URL
+from promptli.auth import OAuthCredential, OAuthToken, browser_login, credential_auth, save_credential
 
 app = typer.Typer(help="Promptli Comms: email, SMS and phone calls for AI agents.", no_args_is_help=True)
 identities_app = typer.Typer(help="Agent identities", no_args_is_help=True)
@@ -68,21 +70,21 @@ IdentityOpt = Annotated[str, typer.Option("--identity", "-i", help="Handle or id
 # ---- plumbing --------------------------------------------------------------------------------
 
 
-def _creds() -> tuple[str | None, str | None]:
-    key, base = os.environ.get("PROMPTLI_API_KEY"), os.environ.get("PROMPTLI_BASE_URL")
-    if (not key or not base) and CRED_PATH.exists():
-        stored = json.loads(CRED_PATH.read_text())
-        key = key or stored.get("api_key")
-        base = base or stored.get("base_url")
-    return key, base
+def _base_url() -> str | None:
+    base = os.environ.get("PROMPTLI_BASE_URL")
+    if not base and CRED_PATH.exists():
+        stored: dict[str, Any] = json.loads(CRED_PATH.read_text())
+        oauth = OAuthCredential.from_dict(stored)
+        base = oauth.base_url if oauth else stored.get("base_url")
+    return base
 
 
 def _client() -> AsyncPromptli:
-    key, base = _creds()
-    if not key:
-        console.print("[red]No API key.[/] Run `promptli login` or set PROMPTLI_API_KEY.")
+    auth = credential_auth(CRED_PATH, env_key=os.environ.get("PROMPTLI_API_KEY"))
+    if auth is None:
+        console.print("[red]Not logged in.[/] Run `promptli login` (or set PROMPTLI_API_KEY).")
         raise typer.Exit(2)
-    return AsyncPromptli(key, base_url=base, user_agent="promptli-cli")
+    return AsyncPromptli(auth, base_url=_base_url(), user_agent="promptli-cli")
 
 
 def _dump(obj: Any) -> Any:
@@ -128,22 +130,74 @@ async def _with(fn: Callable[[AsyncPromptli], Awaitable[T]]) -> T:
 
 @app.command()
 def login(
-    api_key: Annotated[str, typer.Option(prompt=True, hide_input=True, help="psk_live_… or psk_test_…")],
+    api_key: Annotated[
+        bool, typer.Option("--api-key", help="Paste an API key instead of logging in with the browser")
+    ] = False,
+    no_browser: Annotated[
+        bool, typer.Option("--no-browser", help="Print the login link and paste the code (SSH, headless)")
+    ] = False,
+    identity: Annotated[str | None, typer.Option("--identity", "-i", help="Agent to preselect")] = None,
+    number: Annotated[
+        bool, typer.Option("--number", help="Offer to get a phone number for the agent")
+    ] = False,
+    test: Annotated[
+        bool, typer.Option("--test", help="Start in Test mode (simulated, nothing is sent)")
+    ] = False,
     base_url: Annotated[str | None, typer.Option(help="API base URL (default production)")] = None,
 ) -> None:
-    """Store an API key in ~/.promptli/credentials (mode 600)."""
+    """Log in with your browser and pick (or create) an agent. Saves ~/.promptli/credentials (mode 600)."""
+    base = (base_url or os.environ.get("PROMPTLI_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
+    if api_key:
+        key = typer.prompt("API key (psk_live_… or psk_test_…, input hidden)", hide_input=True).strip()
 
-    async def check(p: AsyncPromptli) -> Any:
-        return await p.whoami()
+        async def check_key() -> Any:
+            async with AsyncPromptli(key, base_url=base, user_agent="promptli-cli") as p:
+                return await p.whoami()
 
-    os.environ["PROMPTLI_API_KEY"] = api_key
-    if base_url:
-        os.environ["PROMPTLI_BASE_URL"] = base_url
-    who = _run(_with(check))
-    CRED_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CRED_PATH.write_text(json.dumps({"api_key": api_key, **({"base_url": base_url} if base_url else {})}))
-    CRED_PATH.chmod(0o600)
-    console.print(f"Logged in to [bold]{who.org_name}[/] ({who.env}). Saved to {CRED_PATH}")
+        who = _run(check_key())
+        save_credential(CRED_PATH, {"api_key": key, **({"base_url": base} if base_url else {})})
+        console.print(f"Logged in to [bold]{who.org_name}[/] ({who.env}). Saved to {CRED_PATH}")
+        return
+
+    def show(url: str) -> None:
+        if no_browser:
+            console.print(f"Open this link on any device and approve:\n\n  {url}\n")
+        else:
+            console.print(f"Opening your browser to log in…\nIf it doesn't open, visit:\n  [dim]{url}[/]\n")
+
+    async def paste() -> str:
+        return await asyncio.to_thread(typer.prompt, "Paste the code shown after you approve")
+
+    cred = _run(
+        browser_login(
+            base,
+            client_name=f"Promptli CLI on {socket.gethostname().split('.')[0]}",
+            open_browser=not no_browser,
+            login_hint=identity,
+            want_number=number,
+            env="test" if test else None,
+            on_url=show,
+            paste_code=paste if no_browser else None,
+        )
+    )
+    save_credential(CRED_PATH, cred)
+    console.print(
+        f"[green]Logged in[/] as agent [bold]@{cred.identity}[/] ({cred.env}). Saved to {CRED_PATH}\n"
+        "[dim]Disconnect anytime: `promptli logout`, or API keys → Connected apps in the console.[/]"
+    )
+
+
+@app.command()
+def logout() -> None:
+    """Revoke this machine's browser login (or forget the stored API key) and delete the credentials."""
+    if not CRED_PATH.exists():
+        console.print("Not logged in.")
+        return
+    auth = credential_auth(CRED_PATH)
+    if isinstance(auth, OAuthToken):
+        _run(auth.revoke())
+    CRED_PATH.unlink()
+    console.print("Logged out." + (" The browser login was revoked." if isinstance(auth, OAuthToken) else ""))
 
 
 @app.command()

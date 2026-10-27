@@ -50,21 +50,28 @@ async def doctor(
         return rep
     rep.add("config", True, str(cfg.dir))
     try:
-        key = cfg.api_key()
+        auth = cfg.auth()
     except RuntimeError as e:
-        rep.add("api key", False, str(e))
+        rep.add("credential", False, str(e))
         return rep
-    async with AsyncPromptli(key, base_url=cfg.base_url) as p:
+    kind = cfg.credential_kind()
+    async with AsyncPromptli(auth, base_url=cfg.base_url) as p:
         try:
             who = await p.whoami()
+            handle = who.identity.handle if who.identity else "?"
+            label = (
+                f"browser login for @{handle} ({who.env})"
+                if kind == "browser_login"
+                else f"{who.env} key for @{handle}"
+            )
             rep.add(
-                "api key",
+                "credential",
                 who.key_kind != "provisional",
-                f"{who.env} key for @{who.identity.handle if who.identity else '?'}"
-                + (" (provisional: verify the signup code)" if who.key_kind == "provisional" else ""),
+                label + (" (provisional: verify the signup code)" if who.key_kind == "provisional" else ""),
             )
         except PromptliError as e:
-            rep.add("api key", False, f"{e.code}: {e.message}")
+            hint = " (run setup again to log in)" if e.code == "login_expired" else ""
+            rep.add("credential", False, f"{e.code}: {e.message}{hint}")
             return rep
         try:
             st = await p.identity(cfg.identity).channel_status()

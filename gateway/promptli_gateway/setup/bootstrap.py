@@ -11,7 +11,7 @@ import socket
 from dataclasses import dataclass, field
 from typing import Any
 
-from promptli import AsyncPromptli, PromptliError
+from promptli import AsyncPromptli, OAuthCredential, OAuthToken, PromptliError
 from promptli_gateway.config import DEFAULT_BASE_URL, GatewayConfig
 
 
@@ -34,8 +34,9 @@ class BootstrapResult:
 async def bootstrap(
     *,
     runtime: str,
-    api_key: str,
-    identity: str | None,
+    api_key: str | None = None,
+    identity: str | None = None,
+    credential: OAuthCredential | None = None,
     base_url: str = DEFAULT_BASE_URL,
     project_dir: str | None = None,
     phone_region: str | None = None,
@@ -43,6 +44,14 @@ async def bootstrap(
     extra: dict[str, Any] | None = None,
 ) -> BootstrapResult:
     res = BootstrapResult(status="ok")
+    if credential is not None:
+        return await _bootstrap_browser_login(
+            runtime=runtime, credential=credential, project_dir=project_dir, extra=extra, res=res
+        )
+    if not api_key:
+        return BootstrapResult(
+            status="error", error={"code": "credential_required", "message": "Log in or pass an API key."}
+        )
     try:
         async with AsyncPromptli(
             api_key, base_url=base_url, user_agent=f"promptli-gateway/bootstrap {runtime}"
@@ -122,6 +131,46 @@ async def bootstrap(
             return res
     except PromptliError as e:
         return BootstrapResult(status="error", error={"code": e.code, "message": e.message})
+
+
+async def _bootstrap_browser_login(
+    *,
+    runtime: str,
+    credential: OAuthCredential,
+    project_dir: str | None,
+    extra: dict[str, Any] | None,
+    res: BootstrapResult,
+) -> BootstrapResult:
+    """A browser login is already bound to one agent (chosen or created on the consent page, with any phone
+    number), so nothing is minted: the login itself is stored and refreshes on its own."""
+    tok = OAuthToken(credential)
+    try:
+        async with AsyncPromptli(
+            tok, base_url=credential.base_url, user_agent=f"promptli-gateway/bootstrap {runtime}"
+        ) as p:
+            who = await p.whoami()
+            if not who.identity:
+                return BootstrapResult(
+                    status="error",
+                    error={"code": "identity_required", "message": "The login isn't bound to an agent."},
+                )
+            handle = who.identity.handle
+            me = p.identity(handle)
+            ident = await me.get()
+            st = await me.channel_status()
+            res.env, res.key_kind = who.env, who.key_kind
+            res.identity, res.email_address, res.phone_number = handle, ident.email_address, st.sms.number
+    except PromptliError as e:
+        return BootstrapResult(status="error", error={"code": e.code, "message": e.message})
+    cfg = GatewayConfig.load(runtime) or GatewayConfig(runtime=runtime, identity=handle)
+    cfg.identity, cfg.base_url = handle, credential.base_url
+    if project_dir:
+        cfg.project_dir = project_dir
+    if extra:
+        cfg.extra.update(extra)
+    cfg.save(oauth=tok.cred)  # the newest (possibly rotated) tokens
+    res.actions += ["browser login (no API key stored)", f"saved config to {cfg.dir}"]
+    return res
 
 
 def _has_valid_key(cfg: GatewayConfig) -> bool:

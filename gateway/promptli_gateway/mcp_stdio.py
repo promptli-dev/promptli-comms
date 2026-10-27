@@ -45,7 +45,7 @@ async def serve(runtime: str) -> None:
     cfg = GatewayConfig.load(runtime)
     if cfg is None:
         raise SystemExit(f"Not configured: run `{runtime} bootstrap` first.")
-    async with AsyncPromptli(cfg.api_key(), base_url=cfg.base_url, user_agent=f"promptli-mcp {runtime}") as p:
+    async with AsyncPromptli(cfg.auth(), base_url=cfg.base_url, user_agent=f"promptli-mcp {runtime}") as p:
         server = build_server(comms_tools(p, cfg.identity, lambda _c, _r: None))
         async with stdio_server() as (read, write):
             await server.run(read, write, server.create_initialization_options())

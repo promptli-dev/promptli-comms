@@ -374,7 +374,7 @@ class AsyncIdentity:
         are routed with ?identity=."""
         return AgentLink(
             self._t.link_url,
-            self._t.api_key,
+            self._t.auth,
             instance=instance,
             identity=self.ref,
             capabilities=list(capabilities),

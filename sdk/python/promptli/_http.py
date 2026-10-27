@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 
 from promptli import __version__
+from promptli.auth import StaticToken, TokenSource
 from promptli.errors import ConnectionError_, PromptliError, RateLimitError, error_from_response
 
 DEFAULT_BASE_URL = "https://api.comms.promptli.com"
@@ -20,7 +21,7 @@ class Transport:
     def __init__(
         self,
         *,
-        api_key: str,
+        api_key: str | TokenSource,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = 30.0,
         max_retries: int = 3,
@@ -29,12 +30,20 @@ class Transport:
     ) -> None:
         if not api_key:
             raise PromptliError("No API key: pass api_key=… or set PROMPTLI_API_KEY.", code="invalid_api_key")
-        self.api_key = api_key
+        # A plain key, or a token source (browser login) that refreshes short-lived tokens on its own.
+        self.auth: TokenSource = StaticToken(api_key) if isinstance(api_key, str) else api_key
         self.base_url = base_url.rstrip("/")
         self.max_retries = max_retries
         ua = f"promptli-python/{__version__}" + (f" {user_agent}" if user_agent else "")
         self._client = http_client or httpx.AsyncClient(timeout=timeout)
-        self._headers = {"Authorization": f"Bearer {api_key}", "User-Agent": ua, "Accept": "application/json"}
+        self._headers = {"User-Agent": ua, "Accept": "application/json"}
+
+    @property
+    def api_key(self) -> str:
+        """The static key (only for API-key auth; browser logins have no long-lived key)."""
+        if isinstance(self.auth, StaticToken):
+            return self.auth.key
+        raise PromptliError("This client uses a browser login, not an API key.", code="invalid_api_key")
 
     @property
     def link_url(self) -> str:
@@ -66,7 +75,9 @@ class Transport:
         clean_params = {k: v for k, v in (params or {}).items() if v is not None}
         retryable_method = method in ("GET", "DELETE", "PUT") or "Idempotency-Key" in headers
         attempt = 0
+        reauthed = False
         while True:
+            headers["Authorization"] = f"Bearer {await self.auth.token()}"
             try:
                 res = await self._client.request(
                     method,
@@ -92,6 +103,11 @@ class Transport:
             except ValueError:
                 body = {"error": {"message": res.text[:200]}}
             err = error_from_response(res.status_code, body, res.headers.get("retry-after"))
+            if res.status_code == 401 and not reauthed and not isinstance(self.auth, StaticToken):
+                # The access token was rotated or revoked under us: refresh once and retry.
+                reauthed = True
+                await self.auth.invalidate()
+                continue
             if res.status_code in RETRY_STATUSES and retryable_method and attempt < self.max_retries:
                 attempt += 1
                 await asyncio.sleep(

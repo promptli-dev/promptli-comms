@@ -12,6 +12,7 @@ import httpx
 
 from promptli._generated import models as m
 from promptli._http import DEFAULT_BASE_URL, Transport
+from promptli.auth import TokenSource
 from promptli.errors import PromptliError
 from promptli.identity import AsyncIdentity
 
@@ -303,7 +304,7 @@ class AsyncPromptli:
 
     def __init__(
         self,
-        api_key: str | None = None,
+        api_key: str | TokenSource | None = None,
         *,
         base_url: str | None = None,
         timeout: float = 30.0,
