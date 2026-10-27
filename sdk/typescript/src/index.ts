@@ -1,4 +1,4 @@
-export { AgentIdentity, Promptli, type PromptliOptions } from "./client";
+export { AgentIdentity, Promptli, type PromptliOptions } from "./client.js";
 export type {
   BillingAccount,
   BriefView,
@@ -12,7 +12,7 @@ export type {
   Transcript,
   Usage,
   VoiceSettings,
-} from "./client";
-export { DEFAULT_BASE_URL, PromptliError } from "./http";
-export { computeSignature, type EventEnvelope, parseEvent, verifyWebhook } from "./webhooks";
-export type { components, paths } from "./schema";
+} from "./client.js";
+export { DEFAULT_BASE_URL, PromptliError } from "./http.js";
+export { computeSignature, type EventEnvelope, parseEvent, verifyWebhook } from "./webhooks.js";
+export type { components, paths } from "./schema.js";
