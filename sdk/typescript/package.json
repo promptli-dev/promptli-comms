@@ -1,6 +1,6 @@
 {
   "name": "@promptli-npm/sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Promptli Comms: email, SMS and phone calls for AI agents (TypeScript / JavaScript SDK).",
   "license": "MIT",
   "type": "module",
