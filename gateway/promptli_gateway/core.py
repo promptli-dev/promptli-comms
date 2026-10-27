@@ -63,7 +63,7 @@ class Gateway:
         self.cfg = config
         self.adapter = adapter
         self.client = client or AsyncPromptli(
-            config.api_key(), base_url=config.base_url, user_agent=f"promptli-gateway {adapter.name}"
+            config.auth(), base_url=config.base_url, user_agent=f"promptli-gateway {adapter.name}"
         )
         self.state = GatewayState(config.state_path)
         self.identity_address: str | None = None

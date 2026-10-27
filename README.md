@@ -35,7 +35,12 @@ async def main():
 asyncio.run(main())
 ```
 
-CLI: `promptli login`, `promptli whoami`, `promptli email send -i glow --to jane@example.com --subject Hi --text Hello`,
+Log in: `promptli login` opens your browser, where you pick or create an agent (add `--number` to get it a
+phone number, `--no-browser` on SSH). Nothing to copy or paste; the login refreshes itself and can be revoked
+under **API keys → Connected apps**. `promptli login --api-key` still works, and so does `PROMPTLI_API_KEY`.
+In code, `AsyncPromptli(credential_auth(path))` uses a saved login.
+
+CLI: `promptli login`, `promptli logout`, `promptli whoami`, `promptli email send -i glow --to jane@example.com --subject Hi --text Hello`,
 `promptli text send -i glow --to +15551234567 --text Hi`, `promptli events tail -i glow`, `promptli doctor -i glow`.
 
 Webhooks: `from promptli import verify_webhook` → `verify_webhook(raw_body, headers, "whsec_…")`.

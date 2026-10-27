@@ -21,6 +21,7 @@ import websockets
 from websockets.asyncio.client import ClientConnection
 
 from promptli import __version__
+from promptli.auth import StaticToken, TokenSource
 from promptli.errors import AuthenticationError, PromptliError
 
 log = logging.getLogger("promptli.link")
@@ -33,7 +34,7 @@ class AgentLink:
     def __init__(
         self,
         url: str,
-        api_key: str,
+        api_key: str | TokenSource,
         *,
         instance: str,
         identity: str | None = None,
@@ -49,7 +50,7 @@ class AgentLink:
         if capabilities:
             params.append("capabilities=" + ",".join(capabilities))
         self.url = url + (("?" + "&".join(params)) if params else "")
-        self.api_key = api_key
+        self.auth: TokenSource = StaticToken(api_key) if isinstance(api_key, str) else api_key
         self.instance = instance
         self.resume_after = resume_after
         self.reconnect = reconnect
@@ -135,12 +136,24 @@ class AgentLink:
 
     async def _run(self) -> None:
         attempt = 0
+        reauthed = False
         while not self._closed:
             try:
+                try:
+                    token = (
+                        await self.auth.token()
+                    )  # a browser login hands out a fresh token on each (re)connect
+                except AuthenticationError:
+                    raise
+                except (
+                    PromptliError,
+                    OSError,
+                ) as err:  # token endpoint unreachable: retry like a dropped link
+                    raise ConnectionError(str(err)) from err
                 async with websockets.connect(
                     self.url,
                     additional_headers={
-                        "Authorization": f"Bearer {self.api_key}",
+                        "Authorization": f"Bearer {token}",
                         "X-Link-Instance": self.instance,
                         "User-Agent": self.user_agent,
                     },
@@ -151,6 +164,10 @@ class AgentLink:
                     hello = json.loads(await ws.recv())
                     if hello.get("type") == "error":
                         code = hello.get("code", "invalid_api_key")
+                        if not reauthed and not isinstance(self.auth, StaticToken):
+                            reauthed = True  # an access token that expired or rotated in flight: refresh once
+                            await self.auth.invalidate()
+                            continue
                         raise AuthenticationError(hello.get("message", code), code=code, status=401)
                     self.hello = hello
                     self.last_seq = max(self.last_seq, int(hello.get("cursor", 0)))
@@ -158,6 +175,7 @@ class AgentLink:
                         await ws.send(json.dumps({"type": "resume", "after": self.resume_after}))
                         self.resume_after = None
                     attempt = 0
+                    reauthed = False
                     self._connected.set()
                     await self._state("connected")
                     async for raw in ws:
