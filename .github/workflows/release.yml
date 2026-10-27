@@ -1,9 +1,9 @@
 name: Release
 # Tag-driven publishing with trusted publishing (OIDC): no PyPI or npm token is stored in GitHub.
 #   py-v0.1.0  → promptli + promptli-gateway on PyPI (both must carry that version)
-#   ts-v0.1.0  → @promptli/sdk on npm
+#   ts-v0.1.0  → promptli on npm
 # One-time owner setup (RELEASING.md): PyPI trusted publishers promptli → environment "pypi" and
-# promptli-gateway → environment "pypi-gateway"; npm trusted publisher for @promptli/sdk → "npm".
+# promptli-gateway → environment "pypi-gateway"; npm trusted publisher for promptli → "npm".
 on:
   push:
     tags: ["py-v*", "ts-v*"]
