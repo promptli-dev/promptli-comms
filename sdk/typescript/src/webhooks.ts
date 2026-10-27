@@ -2,7 +2,7 @@
 // v1 = HMAC-SHA256(secret without "whsec_", `${id}.${timestamp}.` + raw body). Uses Web Crypto (Node 18+,
 // Bun, Deno, Workers, browsers).
 
-import type { components } from "./schema";
+import type { components } from "./schema.js";
 
 export type EventEnvelope = components["schemas"]["EventEnvelope"];
 

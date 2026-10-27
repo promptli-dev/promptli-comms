@@ -1,8 +1,8 @@
 // Promptli Comms client: `new Promptli({ apiKey })`, then `p.identity("glow").sendText(...)` etc.
 // Types come from the generated OpenAPI schema; `p.request()` reaches any route not wrapped here.
 
-import { type RequestOptions, Transport, type TransportOptions } from "./http";
-import type { components } from "./schema";
+import { type RequestOptions, Transport, type TransportOptions } from "./http.js";
+import type { components } from "./schema.js";
 
 type S = components["schemas"];
 export type Identity = S["Identity"];

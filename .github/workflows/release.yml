@@ -97,5 +97,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Version matches the tag
         run: test "$(node -p 'require("./package.json").version')" = "${GITHUB_REF_NAME#ts-v}"
-      - run: pnpm run typecheck && pnpm run test && pnpm run build
+      - run: pnpm run typecheck && pnpm run test && pnpm run build && pnpm run test:dist
       - run: npm publish --access public --provenance

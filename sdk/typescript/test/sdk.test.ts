@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { computeSignature, Promptli, PromptliError, verifyWebhook } from "../src/index";
+import { computeSignature, Promptli, PromptliError, verifyWebhook } from "../src/index.js";
 
 const KEY = "psk_test_abcdefghijkl_" + "a".repeat(43);
 const vectors = JSON.parse(readFileSync(new URL("../../../spec/fixtures/signing/vectors.json", import.meta.url), "utf8")) as {
