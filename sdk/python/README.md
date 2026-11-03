@@ -43,6 +43,16 @@ In code, `AsyncPromptli(credential_auth(path))` uses a saved login.
 CLI: `promptli login`, `promptli logout`, `promptli whoami`, `promptli email send -i glow --to jane@example.com --subject Hi --text Hello`,
 `promptli text send -i glow --to +15551234567 --text Hi`, `promptli events tail -i glow`, `promptli doctor -i glow`.
 
+Voices and engines: `promptli call voices --provider openai` lists the voices for the Realtime engines, and
+`promptli call voices --play cedar` plays a demo clip. `promptli call voice -i glow --engine realtime-mini
+--realtime-voice cedar` picks the engine and voice for the Promptli assistant:
+
+| Engine | Price | Voices |
+|---|---|---|
+| Realtime (default) | $0.25/min | OpenAI |
+| Realtime mini | $0.15/min | OpenAI |
+| cascaded | $0.10/min | Cartesia |
+
 Webhooks: `from promptli import verify_webhook` → `verify_webhook(raw_body, headers, "whsec_…")`.
 
 ## Development

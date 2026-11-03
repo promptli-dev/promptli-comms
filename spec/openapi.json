@@ -288,6 +288,55 @@
         "title": "AttachmentIn",
         "type": "object"
       },
+      "AudioSession": {
+        "properties": {
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "listen",
+              "talk"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "url": {
+            "description": "WebSocket URL with a one-time ticket; connect within expires_in seconds",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_id",
+          "mode",
+          "url",
+          "expires_in"
+        ],
+        "title": "AudioSession",
+        "type": "object"
+      },
+      "AudioSessionRequest": {
+        "properties": {
+          "mode": {
+            "default": "listen",
+            "description": "listen = hear both sides; talk = also take the call over by voice",
+            "enum": [
+              "listen",
+              "talk"
+            ],
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "title": "AudioSessionRequest",
+        "type": "object"
+      },
       "AvailableList": {
         "properties": {
           "data": {
@@ -1090,6 +1139,78 @@
           "data"
         ],
         "title": "CatalogList",
+        "type": "object"
+      },
+      "ChangePlanRequest": {
+        "properties": {
+          "confirm": {
+            "default": false,
+            "description": "false = preview the prorated charge; true = switch now",
+            "title": "Confirm",
+            "type": "boolean"
+          },
+          "interval": {
+            "default": "month",
+            "enum": [
+              "month",
+              "year"
+            ],
+            "title": "Interval",
+            "type": "string"
+          },
+          "plan": {
+            "enum": [
+              "developer",
+              "startup"
+            ],
+            "title": "Plan",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan"
+        ],
+        "title": "ChangePlanRequest",
+        "type": "object"
+      },
+      "ChangePlanResult": {
+        "properties": {
+          "amount_due": {
+            "description": "Prorated amount charged now, in the smallest currency unit",
+            "title": "Amount Due",
+            "type": "integer"
+          },
+          "applied": {
+            "title": "Applied",
+            "type": "boolean"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "interval": {
+            "title": "Interval",
+            "type": "string"
+          },
+          "pending": {
+            "default": false,
+            "description": "Payment not completed yet; the old plan stays until it is",
+            "title": "Pending",
+            "type": "boolean"
+          },
+          "plan": {
+            "title": "Plan",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan",
+          "interval",
+          "amount_due",
+          "currency",
+          "applied"
+        ],
+        "title": "ChangePlanResult",
         "type": "object"
       },
       "ChannelState": {
@@ -4322,6 +4443,22 @@
             ],
             "title": "Area Code"
           },
+          "country": {
+            "anyOf": [
+              {
+                "enum": [
+                  "US",
+                  "CA"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "US or CA; inferred from region or area code when omitted, else US",
+            "title": "Country"
+          },
           "number": {
             "anyOf": [
               {
@@ -4331,7 +4468,7 @@
                 "type": "null"
               }
             ],
-            "description": "A specific E.164 number from /numbers/available",
+            "description": "A specific E.164 number from /numbers/available, or one Promptli released to your org",
             "title": "Number"
           },
           "region": {
@@ -4343,7 +4480,7 @@
                 "type": "null"
               }
             ],
-            "description": "US state, e.g. NY (when number is omitted)",
+            "description": "US state or Canadian province, e.g. NY or ON (when number is omitted)",
             "title": "Region"
           }
         },
@@ -6175,6 +6312,20 @@
             ],
             "title": "Description"
           },
+          "engines": {
+            "description": "Where this voice is used: OpenAI voices on realtime engines; Cartesia voices on cascaded assistant calls and your own agent's calls",
+            "items": {
+              "enum": [
+                "realtime",
+                "realtime_mini",
+                "cascaded",
+                "agent"
+              ],
+              "type": "string"
+            },
+            "title": "Engines",
+            "type": "array"
+          },
           "gender": {
             "anyOf": [
               {
@@ -6199,14 +6350,23 @@
                 "type": "null"
               }
             ],
+            "description": "null = speaks any language (OpenAI voices)",
             "title": "Language"
           },
           "name": {
             "title": "Name",
             "type": "string"
           },
+          "preview_url": {
+            "description": "GET it for a short demo clip (JSON with a playable url)",
+            "title": "Preview Url",
+            "type": "string"
+          },
           "provider": {
-            "const": "cartesia",
+            "enum": [
+              "cartesia",
+              "openai"
+            ],
             "title": "Provider",
             "type": "string"
           }
@@ -6217,7 +6377,9 @@
           "description",
           "language",
           "gender",
-          "provider"
+          "provider",
+          "engines",
+          "preview_url"
         ],
         "title": "Voice",
         "type": "object"
@@ -6236,6 +6398,25 @@
           "data"
         ],
         "title": "VoiceList",
+        "type": "object"
+      },
+      "VoicePreview": {
+        "properties": {
+          "content_type": {
+            "title": "Content Type",
+            "type": "string"
+          },
+          "url": {
+            "description": "Playable audio (mp3 or wav); a data: URL in test mode before a clip exists",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "content_type"
+        ],
+        "title": "VoicePreview",
         "type": "object"
       },
       "VoiceSettings": {
@@ -6278,6 +6459,24 @@
             "description": "Voicemail greeting override",
             "title": "Greeting"
           },
+          "hosted_engine": {
+            "anyOf": [
+              {
+                "enum": [
+                  "realtime",
+                  "realtime_mini",
+                  "cascaded",
+                  "default"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Engine for Promptli assistant calls: realtime (OpenAI Realtime, Premium $0.25/min), realtime_mini (Premium mini $0.15/min) or cascaded (Cartesia voices, Hosted $0.10/min). Read: null = the org default. Write: omit to keep, 'default' to follow the org default",
+            "title": "Hosted Engine"
+          },
           "incoming_action": {
             "description": "agent = your connected agent answers (Standard); hosted = the Promptli assistant answers from the call brief (Hosted, needs Hosted calls enabled); forward = ring forward_to; auto_reject",
             "enum": [
@@ -6293,6 +6492,18 @@
             "default": "en",
             "title": "Language",
             "type": "string"
+          },
+          "realtime_voice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "OpenAI voice for realtime engines (GET /v1/voices?provider=openai). Omit to keep",
+            "title": "Realtime Voice"
           },
           "recording": {
             "description": "Record calls (a consent announcement plays first). Off by default",
@@ -6684,9 +6895,56 @@
         ]
       }
     },
+    "/v1/billing/change-plan": {
+      "post": {
+        "description": "Switch an existing subscription's plan (prorated, charged now). Preview first with confirm=false.",
+        "operationId": "changeBillingPlan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePlanResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Change Plan",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
     "/v1/billing/checkout": {
       "post": {
-        "description": "Start a Stripe Checkout to subscribe (or change plan). The plan applies when Stripe confirms.",
+        "description": "Subscribe via Stripe Checkout (orgs without a subscription). The plan applies when Stripe confirms.",
         "operationId": "createBillingCheckout",
         "requestBody": {
           "content": {
@@ -6858,6 +7116,64 @@
           }
         ],
         "summary": "Answer",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}/audio-session": {
+      "post": {
+        "description": "Listen to a live call from a browser, or take it over by voice (talk needs calls:steer).\n\nThe socket sends binary frames `[kind] + \u03bc-law 8 kHz` (kind 0 caller, 1 agent/assistant, 2 human) and\nJSON control frames (`clear`, `ended`). With a talk ticket, send `{\"type\":\"talk\"}`, then microphone\n\u03bc-law frames; `{\"type\":\"release\"}` hands the call back.",
+        "operationId": "createCallAudioSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioSession"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Audio Session",
         "tags": [
           "Calls"
         ]
@@ -10603,7 +10919,7 @@
         ]
       },
       "post": {
-        "description": "Buy a local US number for the identity (voice + SMS). Idempotent: returns any existing number.",
+        "description": "Buy a local US or Canadian number (voice + SMS) for the identity. Idempotent: returns any existing.",
         "operationId": "provisionPhoneNumber",
         "parameters": [
           {
@@ -11578,7 +11894,29 @@
         "operationId": "searchAvailableNumbers",
         "parameters": [
           {
-            "description": "US state, e.g. NY",
+            "description": "US or CA; inferred from region or area code when omitted, else US",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "US",
+                    "CA"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "US or CA; inferred from region or area code when omitted, else US",
+              "title": "Country"
+            }
+          },
+          {
+            "description": "US state or Canadian province, e.g. NY or ON",
             "in": "query",
             "name": "region",
             "required": false,
@@ -11591,7 +11929,7 @@
                   "type": "null"
                 }
               ],
-              "description": "US state, e.g. NY",
+              "description": "US state or Canadian province, e.g. NY or ON",
               "title": "Region"
             }
           },
@@ -12287,7 +12625,29 @@
         "operationId": "listVoices",
         "parameters": [
           {
-            "description": "e.g. en, es, fr",
+            "description": "openai = voices for realtime engines; cartesia = the rest. Default: both",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "cartesia",
+                    "openai"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "openai = voices for realtime engines; cartesia = the rest. Default: both",
+              "title": "Provider"
+            }
+          },
+          {
+            "description": "e.g. en, es, fr (OpenAI voices speak any)",
             "in": "query",
             "name": "language",
             "required": false,
@@ -12300,7 +12660,7 @@
                   "type": "null"
                 }
               ],
-              "description": "e.g. en, es, fr",
+              "description": "e.g. en, es, fr (OpenAI voices speak any)",
               "title": "Language"
             }
           },
@@ -12351,6 +12711,85 @@
           }
         ],
         "summary": "List Voices",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/v1/voices/{provider}/{voice_id}/preview": {
+      "get": {
+        "description": "A short demo clip of the voice saying one fixed sentence (made once, then cached).",
+        "operationId": "getVoicePreview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "enum": [
+                "cartesia",
+                "openai"
+              ],
+              "title": "Provider",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "voice_id",
+            "required": true,
+            "schema": {
+              "title": "Voice Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Cartesia: the sample sentence's language",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cartesia: the sample sentence's language",
+              "title": "Language"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoicePreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Voice Preview",
         "tags": [
           "Calls"
         ]

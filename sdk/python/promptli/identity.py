@@ -271,7 +271,8 @@ class AsyncIdentity:
 
     async def update_voice_settings(self, **changes: Any) -> m.VoiceSettings:
         """Change some fields (the rest are kept): incoming_action, forward_to, agent_unreachable, voice_id,
-        language, speed, recording, fillers, greeting."""
+        language, speed, recording, fillers, greeting, hosted_engine ("realtime" | "realtime_mini" |
+        "cascaded" | "default" = follow the org), realtime_voice (an OpenAI voice, e.g. "cedar")."""
         current = (await self.voice_settings()).model_dump(mode="json")
         current.update(changes)
         return m.VoiceSettings.model_validate(await self._t.request("PUT", self._p("/voice"), json=current))

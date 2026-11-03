@@ -248,9 +248,24 @@ class Calls(_Namespace):
         data = await self._t.request("GET", f"/v1/calls/{call_id}/recording")
         return data if isinstance(data, bytes) else b""
 
-    async def voices(self, *, language: str | None = None, q: str | None = None) -> list[m.Voice]:
-        res = await self._t.request("GET", "/v1/voices", params={"language": language, "q": q})
+    async def voices(
+        self, *, provider: str | None = None, language: str | None = None, q: str | None = None
+    ) -> list[m.Voice]:
+        """Voices for calls. provider="openai": for the realtime engines; "cartesia": the rest (and your own
+        agent's calls). Each has a `preview_url` (see voice_preview)."""
+        res = await self._t.request(
+            "GET", "/v1/voices", params={"provider": provider, "language": language, "q": q}
+        )
         return [m.Voice.model_validate(x) for x in res["data"]]
+
+    async def voice_preview(
+        self, provider: str, voice_id: str, *, language: str | None = None
+    ) -> m.VoicePreview:
+        """A short demo clip of a voice: `url` is playable audio (mp3 or wav)."""
+        res = await self._t.request(
+            "GET", f"/v1/voices/{provider}/{voice_id}/preview", params={"language": language}
+        )
+        return m.VoicePreview.model_validate(res)
 
 
 class Sandbox(_Namespace):

@@ -534,6 +534,16 @@ def call_voice(
         typer.Option(help="BCP-47 (en, en-IN, te, hi); picks a matching voice unless --voice-id"),
     ] = None,
     recording: Annotated[bool | None, typer.Option("--recording/--no-recording")] = None,
+    engine: Annotated[
+        str | None,
+        typer.Option(
+            help="Promptli assistant engine: realtime ($0.25/min) | realtime-mini ($0.15/min) | "
+            "cascaded ($0.10/min, Cartesia voices) | default (follow the organization)"
+        ),
+    ] = None,
+    realtime_voice: Annotated[
+        str | None, typer.Option(help="OpenAI voice for realtime engines, e.g. marin, cedar (call voices)")
+    ] = None,
     as_json: JsonOpt = False,
 ) -> None:
     """Show (or change) how calls are handled and how the agent sounds."""
@@ -545,12 +555,14 @@ def call_voice(
             "voice_id": voice_id,
             "language": language,
             "recording": recording,
+            "hosted_engine": engine.replace("-", "_") if engine else None,
+            "realtime_voice": realtime_voice,
         }.items()
         if v is not None
     }
     if language and not voice_id:
         base = language.split("-")[0]
-        voices = _run(_with(lambda p: p.calls.voices(language=base)))
+        voices = _run(_with(lambda p: p.calls.voices(provider="cartesia", language=base)))
         if base != "en" and voices:
             changes["voice_id"] = voices[0].id
             console.print(f"[dim]voice: {voices[0].name}[/]")
@@ -564,11 +576,56 @@ def call_voice(
 
 @call_app.command("voices")
 def call_voices(
+    provider: Annotated[
+        str | None, typer.Option(help="openai (realtime engines) | cartesia (the rest). Default: both")
+    ] = None,
     language: Annotated[str | None, typer.Option()] = "en",
     q: Annotated[str | None, typer.Option(help="Search")] = None,
+    play: Annotated[
+        str | None, typer.Option(help="Play a voice's demo clip: its id (with --provider if ambiguous)")
+    ] = None,
     as_json: JsonOpt = False,
 ) -> None:
-    _out(_run(_with(lambda p: p.calls.voices(language=language, q=q))), as_json, ["id", "name", "gender"])
+    """List voices, or play one's demo clip with --play."""
+    if play:
+        voices = _run(_with(lambda p: p.calls.voices(provider=provider)))
+        match = next((v for v in voices if v.id == play), None)
+        if match is None:
+            raise typer.BadParameter(f"No voice {play!r}; see `promptli call voices`.")
+        clip = _run(_with(lambda p: p.calls.voice_preview(match.provider, match.id, language=match.language)))
+        _play(clip.url, clip.content_type)
+        return
+    _out(
+        _run(_with(lambda p: p.calls.voices(provider=provider, language=language, q=q))),
+        as_json,
+        ["id", "name", "provider", "gender", "language"],
+    )
+
+
+def _play(url: str, content_type: str) -> None:
+    """Download a clip and play it with the system player (afplay on macOS, else the default app)."""
+    import shutil
+    import subprocess
+    import tempfile
+    import webbrowser
+
+    import httpx
+
+    if url.startswith("data:"):  # test mode stand-in before a real clip exists
+        import base64
+
+        data = base64.b64decode(url.split(",", 1)[1])
+    else:
+        data = httpx.get(url, timeout=30, follow_redirects=True).content
+    suffix = ".mp3" if "mpeg" in content_type else ".wav"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
+        f.write(data)
+    player = shutil.which("afplay") or shutil.which("ffplay") or shutil.which("aplay")
+    if player:
+        args = [player, f.name] if not player.endswith("ffplay") else [player, "-nodisp", "-autoexit", f.name]
+        subprocess.run(args, check=False)  # noqa: S603
+    else:
+        webbrowser.open(f"file://{f.name}")
 
 
 # ---- texts & numbers -------------------------------------------------------------------------
