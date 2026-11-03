@@ -105,6 +105,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/billing/change-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Plan
+         * @description Switch an existing subscription's plan (prorated, charged now). Preview first with confirm=false.
+         */
+        post: operations["changeBillingPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/billing/checkout": {
         parameters: {
             query?: never;
@@ -116,7 +136,7 @@ export interface paths {
         put?: never;
         /**
          * Checkout
-         * @description Start a Stripe Checkout to subscribe (or change plan). The plan applies when Stripe confirms.
+         * @description Subscribe via Stripe Checkout (orgs without a subscription). The plan applies when Stripe confirms.
          */
         post: operations["createBillingCheckout"];
         delete?: never;
@@ -176,6 +196,30 @@ export interface paths {
          * @description Answer the hosted assistant's ask_supervisor question; it tells the caller (now if idle).
          */
         post: operations["answerCallQuestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/calls/{call_id}/audio-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Audio Session
+         * @description Listen to a live call from a browser, or take it over by voice (talk needs calls:steer).
+         *
+         *     The socket sends binary frames `[kind] + μ-law 8 kHz` (kind 0 caller, 1 agent/assistant, 2 human) and
+         *     JSON control frames (`clear`, `ended`). With a talk ticket, send `{"type":"talk"}`, then microphone
+         *     μ-law frames; `{"type":"release"}` hands the call back.
+         */
+        post: operations["createCallAudioSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1097,7 +1141,7 @@ export interface paths {
         put?: never;
         /**
          * Provision
-         * @description Buy a local US number for the identity (voice + SMS). Idempotent: returns any existing number.
+         * @description Buy a local US or Canadian number (voice + SMS) for the identity. Idempotent: returns any existing.
          */
         post: operations["provisionPhoneNumber"];
         /** Release */
@@ -1614,6 +1658,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/voices/{provider}/{voice_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Voice Preview
+         * @description A short demo clip of the voice saying one fixed sentence (made once, then cached).
+         */
+        get: operations["getVoicePreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/webhooks/catalog": {
         parameters: {
             query?: never;
@@ -1859,6 +1923,33 @@ export interface components {
              * @default false
              */
             inline: boolean;
+        };
+        /** AudioSession */
+        AudioSession: {
+            /** Call Id */
+            call_id: string;
+            /** Expires In */
+            expires_in: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "listen" | "talk";
+            /**
+             * Url
+             * @description WebSocket URL with a one-time ticket; connect within expires_in seconds
+             */
+            url: string;
+        };
+        /** AudioSessionRequest */
+        AudioSessionRequest: {
+            /**
+             * Mode
+             * @description listen = hear both sides; talk = also take the call over by voice
+             * @default listen
+             * @enum {string}
+             */
+            mode: "listen" | "talk";
         };
         /** AvailableList */
         AvailableList: {
@@ -2128,6 +2219,48 @@ export interface components {
         CatalogList: {
             /** Data */
             data: components["schemas"]["CatalogEntry"][];
+        };
+        /** ChangePlanRequest */
+        ChangePlanRequest: {
+            /**
+             * Confirm
+             * @description false = preview the prorated charge; true = switch now
+             * @default false
+             */
+            confirm: boolean;
+            /**
+             * Interval
+             * @default month
+             * @enum {string}
+             */
+            interval: "month" | "year";
+            /**
+             * Plan
+             * @enum {string}
+             */
+            plan: "developer" | "startup";
+        };
+        /** ChangePlanResult */
+        ChangePlanResult: {
+            /**
+             * Amount Due
+             * @description Prorated amount charged now, in the smallest currency unit
+             */
+            amount_due: number;
+            /** Applied */
+            applied: boolean;
+            /** Currency */
+            currency: string;
+            /** Interval */
+            interval: string;
+            /**
+             * Pending
+             * @description Payment not completed yet; the old plan stays until it is
+             * @default false
+             */
+            pending: boolean;
+            /** Plan */
+            plan: string;
         };
         /** ChannelState */
         ChannelState: {
@@ -3223,13 +3356,18 @@ export interface components {
             /** Area Code */
             area_code?: string | null;
             /**
+             * Country
+             * @description US or CA; inferred from region or area code when omitted, else US
+             */
+            country?: ("US" | "CA") | null;
+            /**
              * Number
-             * @description A specific E.164 number from /numbers/available
+             * @description A specific E.164 number from /numbers/available, or one Promptli released to your org
              */
             number?: string | null;
             /**
              * Region
-             * @description US state, e.g. NY (when number is omitted)
+             * @description US state or Canadian province, e.g. NY or ON (when number is omitted)
              */
             region?: string | null;
         };
@@ -3840,24 +3978,47 @@ export interface components {
         Voice: {
             /** Description */
             description: string | null;
+            /**
+             * Engines
+             * @description Where this voice is used: OpenAI voices on realtime engines; Cartesia voices on cascaded assistant calls and your own agent's calls
+             */
+            engines: ("realtime" | "realtime_mini" | "cascaded" | "agent")[];
             /** Gender */
             gender: string | null;
             /** Id */
             id: string;
-            /** Language */
+            /**
+             * Language
+             * @description null = speaks any language (OpenAI voices)
+             */
             language: string | null;
             /** Name */
             name: string;
             /**
-             * Provider
-             * @constant
+             * Preview Url
+             * @description GET it for a short demo clip (JSON with a playable url)
              */
-            provider: "cartesia";
+            preview_url: string;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "cartesia" | "openai";
         };
         /** VoiceList */
         VoiceList: {
             /** Data */
             data: components["schemas"]["Voice"][];
+        };
+        /** VoicePreview */
+        VoicePreview: {
+            /** Content Type */
+            content_type: string;
+            /**
+             * Url
+             * @description Playable audio (mp3 or wav); a data: URL in test mode before a clip exists
+             */
+            url: string;
         };
         /** VoiceSettings */
         VoiceSettings: {
@@ -3880,6 +4041,11 @@ export interface components {
              */
             greeting?: string | null;
             /**
+             * Hosted Engine
+             * @description Engine for Promptli assistant calls: realtime (OpenAI Realtime, Premium $0.25/min), realtime_mini (Premium mini $0.15/min) or cascaded (Cartesia voices, Hosted $0.10/min). Read: null = the org default. Write: omit to keep, 'default' to follow the org default
+             */
+            hosted_engine?: ("realtime" | "realtime_mini" | "cascaded" | "default") | null;
+            /**
              * Incoming Action
              * @description agent = your connected agent answers (Standard); hosted = the Promptli assistant answers from the call brief (Hosted, needs Hosted calls enabled); forward = ring forward_to; auto_reject
              * @enum {string}
@@ -3890,6 +4056,11 @@ export interface components {
              * @default en
              */
             language: string;
+            /**
+             * Realtime Voice
+             * @description OpenAI voice for realtime engines (GET /v1/voices?provider=openai). Omit to keep
+             */
+            realtime_voice?: string | null;
             /**
              * Recording
              * @description Record calls (a consent announcement plays first). Off by default
@@ -4106,6 +4277,39 @@ export interface operations {
             };
         };
     };
+    changeBillingPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePlanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangePlanResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     createBillingCheckout: {
         parameters: {
             query?: never;
@@ -4212,6 +4416,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SteerResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createCallAudioSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                call_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudioSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioSession"];
                 };
             };
             /** @description Validation Error */
@@ -6847,7 +7086,9 @@ export interface operations {
     searchAvailableNumbers: {
         parameters: {
             query?: {
-                /** @description US state, e.g. NY */
+                /** @description US or CA; inferred from region or area code when omitted, else US */
+                country?: ("US" | "CA") | null;
+                /** @description US state or Canadian province, e.g. NY or ON */
                 region?: string | null;
                 area_code?: string | null;
             };
@@ -7303,7 +7544,9 @@ export interface operations {
     listVoices: {
         parameters: {
             query?: {
-                /** @description e.g. en, es, fr */
+                /** @description openai = voices for realtime engines; cartesia = the rest. Default: both */
+                provider?: ("cartesia" | "openai") | null;
+                /** @description e.g. en, es, fr (OpenAI voices speak any) */
                 language?: string | null;
                 /** @description Search names and descriptions */
                 q?: string | null;
@@ -7321,6 +7564,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VoiceList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getVoicePreview: {
+        parameters: {
+            query?: {
+                /** @description Cartesia: the sample sentence's language */
+                language?: string | null;
+            };
+            header?: never;
+            path: {
+                provider: "cartesia" | "openai";
+                voice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoicePreview"];
                 };
             };
             /** @description Validation Error */

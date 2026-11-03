@@ -11,6 +11,7 @@ export type {
   Text,
   Transcript,
   Usage,
+  Voice,
   VoiceSettings,
 } from "./client.js";
 export { DEFAULT_BASE_URL, PromptliError } from "./http.js";

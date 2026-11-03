@@ -17,6 +17,7 @@ export type Contact = S["Contact"];
 export type BillingAccount = S["BillingAccount"];
 export type HostedSettings = S["HostedSettings"];
 export type VoiceSettings = S["VoiceSettings"];
+export type Voice = S["Voice"];
 
 export type PromptliOptions = Partial<TransportOptions> & { apiKey?: string };
 
@@ -196,6 +197,16 @@ class Calls {
 
   hangup(callId: string): Promise<Call> {
     return this.t.request("POST", `/v1/calls/${enc(callId)}/hangup`);
+  }
+
+  /** Voices for calls: provider "openai" for the realtime engines, "cartesia" for the rest. */
+  voices(opts: { provider?: "openai" | "cartesia"; language?: string; q?: string } = {}): Promise<S["VoiceList"]> {
+    return this.t.request("GET", "/v1/voices", { query: opts });
+  }
+
+  /** A short demo clip of a voice; `url` is playable audio. */
+  voicePreview(provider: "openai" | "cartesia", voiceId: string, language?: string): Promise<S["VoicePreview"]> {
+    return this.t.request("GET", `/v1/voices/${enc(provider)}/${enc(voiceId)}/preview`, { query: { language } });
   }
 
   /** Steer a live call: guidance the agent works into the conversation (never spoken as-is). */

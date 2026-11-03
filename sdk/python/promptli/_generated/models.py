@@ -72,6 +72,31 @@ class AttachmentIn(BaseModel):
     inline: Annotated[bool | None, Field(title="Inline")] = False
 
 
+class AudioSession(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    call_id: Annotated[str, Field(title="Call Id")]
+    expires_in: Annotated[int, Field(title="Expires In")]
+    mode: Annotated[Literal["listen", "talk"], Field(title="Mode")]
+    url: Annotated[
+        str,
+        Field(
+            description="WebSocket URL with a one-time ticket; connect within expires_in seconds", title="Url"
+        ),
+    ]
+
+
+class AudioSessionRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    mode: Annotated[
+        Literal["listen", "talk"] | None,
+        Field(description="listen = hear both sides; talk = also take the call over by voice", title="Mode"),
+    ] = "listen"
+
+
 class BillingSegment(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -196,6 +221,36 @@ class CatalogList(BaseModel):
         populate_by_name=True,
     )
     data: Annotated[list[CatalogEntry], Field(title="Data")]
+
+
+class ChangePlanRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    confirm: Annotated[
+        bool | None,
+        Field(description="false = preview the prorated charge; true = switch now", title="Confirm"),
+    ] = False
+    interval: Annotated[Literal["month", "year"] | None, Field(title="Interval")] = "month"
+    plan: Annotated[Literal["developer", "startup"], Field(title="Plan")]
+
+
+class ChangePlanResult(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    amount_due: Annotated[
+        int,
+        Field(description="Prorated amount charged now, in the smallest currency unit", title="Amount Due"),
+    ]
+    applied: Annotated[bool, Field(title="Applied")]
+    currency: Annotated[str, Field(title="Currency")]
+    interval: Annotated[str, Field(title="Interval")]
+    pending: Annotated[
+        bool | None,
+        Field(description="Payment not completed yet; the old plan stays until it is", title="Pending"),
+    ] = False
+    plan: Annotated[str, Field(title="Plan")]
 
 
 class ChannelState(BaseModel):
@@ -966,11 +1021,25 @@ class ProvisionNumber(BaseModel):
         populate_by_name=True,
     )
     area_code: Annotated[str | None, Field(title="Area Code")] = None
+    country: Annotated[
+        Literal["US", "CA"] | None,
+        Field(
+            description="US or CA; inferred from region or area code when omitted, else US", title="Country"
+        ),
+    ] = None
     number: Annotated[
-        str | None, Field(description="A specific E.164 number from /numbers/available", title="Number")
+        str | None,
+        Field(
+            description="A specific E.164 number from /numbers/available, or one Promptli released to your org",
+            title="Number",
+        ),
     ] = None
     region: Annotated[
-        str | None, Field(description="US state, e.g. NY (when number is omitted)", title="Region")
+        str | None,
+        Field(
+            description="US state or Canadian province, e.g. NY or ON (when number is omitted)",
+            title="Region",
+        ),
     ] = None
 
 
@@ -1446,11 +1515,23 @@ class Voice(BaseModel):
         populate_by_name=True,
     )
     description: Annotated[str | None, Field(title="Description")]
+    engines: Annotated[
+        list[Literal["realtime", "realtime_mini", "cascaded", "agent"]],
+        Field(
+            description="Where this voice is used: OpenAI voices on realtime engines; Cartesia voices on cascaded assistant calls and your own agent's calls",
+            title="Engines",
+        ),
+    ]
     gender: Annotated[str | None, Field(title="Gender")]
     id: Annotated[str, Field(title="Id")]
-    language: Annotated[str | None, Field(title="Language")]
+    language: Annotated[
+        str | None, Field(description="null = speaks any language (OpenAI voices)", title="Language")
+    ]
     name: Annotated[str, Field(title="Name")]
-    provider: Annotated[Literal["cartesia"], Field(title="Provider")]
+    preview_url: Annotated[
+        str, Field(description="GET it for a short demo clip (JSON with a playable url)", title="Preview Url")
+    ]
+    provider: Annotated[Literal["cartesia", "openai"], Field(title="Provider")]
 
 
 class VoiceList(BaseModel):
@@ -1458,6 +1539,20 @@ class VoiceList(BaseModel):
         populate_by_name=True,
     )
     data: Annotated[list[Voice], Field(title="Data")]
+
+
+class VoicePreview(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    content_type: Annotated[str, Field(title="Content Type")]
+    url: Annotated[
+        str,
+        Field(
+            description="Playable audio (mp3 or wav); a data: URL in test mode before a clip exists",
+            title="Url",
+        ),
+    ]
 
 
 class Greeting(RootModel[str]):
@@ -1486,6 +1581,13 @@ class VoiceSettings(BaseModel):
     greeting: Annotated[
         Greeting | None, Field(description="Voicemail greeting override", title="Greeting")
     ] = None
+    hosted_engine: Annotated[
+        Literal["realtime", "realtime_mini", "cascaded", "default"] | None,
+        Field(
+            description="Engine for Promptli assistant calls: realtime (OpenAI Realtime, Premium $0.25/min), realtime_mini (Premium mini $0.15/min) or cascaded (Cartesia voices, Hosted $0.10/min). Read: null = the org default. Write: omit to keep, 'default' to follow the org default",
+            title="Hosted Engine",
+        ),
+    ] = None
     incoming_action: Annotated[
         Literal["agent", "hosted", "forward", "auto_reject"],
         Field(
@@ -1494,6 +1596,13 @@ class VoiceSettings(BaseModel):
         ),
     ]
     language: Annotated[str | None, Field(title="Language")] = "en"
+    realtime_voice: Annotated[
+        str | None,
+        Field(
+            description="OpenAI voice for realtime engines (GET /v1/voices?provider=openai). Omit to keep",
+            title="Realtime Voice",
+        ),
+    ] = None
     recording: Annotated[
         bool,
         Field(
