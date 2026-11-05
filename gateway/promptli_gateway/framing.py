@@ -151,7 +151,9 @@ def frame_call_start(call: dict[str, Any], *, greet: bool, identity_name: str) -
             lines.append(f'You already said: "{call["opening"]}"')
     memories = (call.get("contact") or {}).get("memories") or []
     if memories:
-        lines.append("What you know about them: " + "; ".join(str(m.get("memory", m)) for m in memories[:10]))
+        # Contact memories arrive as plain strings (the API) or {"memory": ...} objects (older payloads).
+        notes = (str(m.get("memory", m)) if isinstance(m, dict) else str(m) for m in memories[:10])
+        lines.append("What you know about them: " + "; ".join(notes))
     note = language_note((call.get("voice") or {}).get("language"))
     if note:
         lines.append(note)
