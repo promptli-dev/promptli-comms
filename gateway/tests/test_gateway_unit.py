@@ -247,3 +247,67 @@ async def test_keywords_and_non_turn_events_are_acked_without_turns(
     await settle(gw)
     assert adapter.prompts == [] and client.log == []
     assert link.acks[-1] == 31
+
+
+def same_person(event: dict[str, Any], contact_key: str = "ctc_jane") -> dict[str, Any]:
+    event["data"]["contact_key"] = contact_key
+    return event
+
+
+def voicemail_event(seq: int, eid: str, contact_key: str = "ctc_jane") -> dict[str, Any]:
+    return {
+        "id": eid,
+        "seq": seq,
+        "type": "call.ended",
+        "data": {
+            "call": {
+                "id": f"call_{seq}",
+                "from": "+15550101111",
+                "outcome": "voicemail",
+            },
+            "transcript": [{"party": "caller", "text": "call me back"}],
+            "contacts": [],
+            "contact_key": contact_key,
+        },
+    }
+
+
+async def test_email_then_text_from_one_person_share_a_session_and_reply_on_each_channel(
+    gateway: tuple[Gateway, FakeClient, EchoAdapter, FakeLink],
+) -> None:
+    gw, client, adapter, link = gateway
+    await gw.handle_event(email_event(1, "evt_e1", "Can I move to 4pm?"))
+    await settle(gw)
+    # The person's worker is still alive (it idles for minutes); now they text.
+    await gw.handle_event(same_person(text_event(2, "evt_t2", "did you get my email?")))
+    await settle(gw)
+    assert [p[0] for p in adapter.prompts] == ["ctc_jane", "ctc_jane"]  # one conversation per person
+    assert 'channel="email"' in adapter.prompts[0][1]
+    assert 'channel="sms"' in adapter.prompts[1][1]
+    assert client.log == [
+        ("reply", ("msg_1", "Echo: Can I move to 4pm?")),
+        ("text", (["+15550101111"], "Echo: did you get my email?")),
+    ]
+    assert link.acks[-1] == 2
+
+
+async def test_mixed_channels_inside_the_sms_window_are_batched_per_channel(
+    gateway: tuple[Gateway, FakeClient, EchoAdapter, FakeLink],
+) -> None:
+    gw, client, adapter, link = gateway
+    await gw.handle_event(same_person(text_event(1, "evt_t1", "running late")))
+    await gw.handle_event(email_event(2, "evt_e2", "agenda attached"))
+    await gw.handle_event(same_person(text_event(3, "evt_t3", "10 min")))
+    await gw.handle_event(voicemail_event(4, "evt_v4"))
+    await settle(gw)
+    prompts = [p[1] for p in adapter.prompts]
+    assert {p[0] for p in adapter.prompts} == {"ctc_jane"}
+    assert len(prompts) == 3  # the two texts are one turn; the email and the voicemail get their own
+    assert 'channel="sms"' in prompts[0] and "running late\n10 min" in prompts[0]
+    assert 'channel="email"' in prompts[1] and "agenda attached" in prompts[1]
+    assert 'channel="voicemail"' in prompts[2] and "call me back" in prompts[2]
+    assert client.log == [
+        ("text", (["+15550101111"], "Echo: running late\n10 min")),
+        ("reply", ("msg_2", "Echo: agenda attached")),
+    ]
+    assert link.acks[-1] == 4
