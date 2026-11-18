@@ -4,7 +4,9 @@
 
 - Dedupe by event id (local sqlite) and ack a *low watermark* of fully processed seqs, so a crash in
   the middle of a turn never skips an event on restart.
-- One FIFO worker per contact_key; bursts of texts from one person within `batch_window_s` become one turn.
+- One FIFO worker (and one runtime session) per contact_key, across channels: the same person by email and
+  then by text lands in the same conversation. Each turn covers one channel and replies on it; bursts of
+  texts in one SMS conversation within `batch_window_s` become one turn.
 - If the agent already replied with a tool (send_email / send_text / reply_email) to that person during
   the turn, the automatic reply is skipped (tool-delivery marking).
 """
@@ -54,6 +56,7 @@ class _Job:
     session_key: str
     channel: str  # email | sms | voicemail
     events: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
+    lane: str = ""  # jobs with the same channel and lane may share a turn (one SMS conversation)
 
 
 class Gateway:
@@ -69,7 +72,7 @@ class Gateway:
         self.identity_address: str | None = None
         self.identity_number: str | None = None
         self.link: AgentLink | None = None
-        self._queues: dict[str, asyncio.Queue[dict[str, Any]]] = {}
+        self._queues: dict[str, asyncio.Queue[_Job]] = {}
         self._workers: dict[str, asyncio.Task[None]] = {}
         self._pending: set[int] = set()
         self._max_seen = 0
@@ -164,10 +167,11 @@ class Gateway:
             await self._advance()
             return
         self._pending.add(seq)
+        job.events = [event]
         q = self._queues.setdefault(job.session_key, asyncio.Queue())
-        await q.put(event)
+        await q.put(job)
         if job.session_key not in self._workers or self._workers[job.session_key].done():
-            self._workers[job.session_key] = asyncio.create_task(self._worker(job.session_key, job.channel))
+            self._workers[job.session_key] = asyncio.create_task(self._worker(job.session_key))
 
     def _route(self, event: dict[str, Any]) -> _Job | None:
         kind = event["type"]
@@ -189,7 +193,7 @@ class Gateway:
                 if conv.get("is_group")
                 else (data.get("contact_key") or f"sms:{data['text']['from']}")
             )
-            return _Job(key, "sms")
+            return _Job(key, "sms", lane=str(conv.get("id") or data["text"]["from"]))
         if kind == "call.ended":
             call = data.get("call") or {}
             if call.get("outcome") != "voicemail":
@@ -207,18 +211,32 @@ class Gateway:
                 await self.link.ack(watermark)
 
     # ---- per-contact worker ----------------------------------------------------------------------
-    async def _worker(self, session_key: str, channel: str) -> None:
+    async def _worker(self, session_key: str) -> None:
+        """Run one person's turns in order. A person can write on several channels while this worker is
+        alive, so every queued job carries its own channel; a turn never mixes channels."""
         q = self._queues[session_key]
+        held: list[_Job] = []  # taken off the queue during an SMS window but not part of that batch
         while True:
-            try:
-                first = await asyncio.wait_for(q.get(), timeout=300)
-            except TimeoutError:
-                return
-            batch = [first]
+            if held:
+                job = held.pop(0)
+            else:
+                try:
+                    job = await asyncio.wait_for(q.get(), timeout=300)
+                except TimeoutError:
+                    return
+            channel = job.channel
+            batch = list(job.events)
             if channel == "sms":
                 await asyncio.sleep(self.cfg.batch_window_s)
                 while not q.empty():
-                    batch.append(q.get_nowait())
+                    held.append(q.get_nowait())
+                rest: list[_Job] = []
+                for other in held:
+                    if other.channel == channel and other.lane == job.lane:
+                        batch.extend(other.events)
+                    else:
+                        rest.append(other)
+                held = rest
             try:
                 await self._run_turn(session_key, channel, batch)
             except Exception:
