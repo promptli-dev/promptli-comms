@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.promptli/comms",
+  "title": "Promptli Comms",
+  "description": "Email, phone calls and SMS for AI agents: one agent identity with an inbox and a phone number.",
+  "version": "0.1.0",
+  "websiteUrl": "https://promptli.com/comms",
+  "icons": [
+    {
+      "src": "https://promptli.com/promptli-logo.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": ["any"]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.comms.promptli.com/mcp"
+    }
+  ]
+}
