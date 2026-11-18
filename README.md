@@ -8,6 +8,17 @@ SDKs, CLI and the agent-plugin gateway for **Promptli Comms**: email, SMS and ph
 | `gateway` | `promptli-gateway`: runtime-agnostic plugin core (Agent Link → per-contact agent sessions, setup/bootstrap/doctor, autostart) |
 | `spec` | Synced from the server's `contracts/` (OpenAPI, errors, Agent Link protocol, signing vectors); never edit by hand |
 
+## Hosted MCP server
+
+Any MCP client can use an agent's email, texts and calls through the hosted server at
+`https://api.comms.promptli.com/mcp` (Streamable HTTP, OAuth sign-in, no API key to paste). In Claude Code:
+
+```bash
+claude mcp add --transport http promptli https://api.comms.promptli.com/mcp
+```
+
+Its official MCP Registry entry, `com.promptli/comms`, is defined in [`server.json`](server.json).
+
 ## Quick start
 ```python
 from promptli import Promptli
