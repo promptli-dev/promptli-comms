@@ -448,12 +448,12 @@
             "title": "Ended At"
           },
           "engine": {
-            "description": "mode_c | hosted_cascaded | openai_realtime | forward",
+            "description": "mode_c | hosted_cascaded | openai_realtime | openai_realtime_mini | voicemail | forward",
             "title": "Engine",
             "type": "string"
           },
           "pool_seconds": {
-            "description": "Included-minute seconds used: billed_seconds x tier ratio (1/2/5)",
+            "description": "Included-minute seconds used: billed_seconds x tier ratio (standard 1, hosted 2, premium_mini 3, premium 5)",
             "title": "Pool Seconds",
             "type": "integer"
           },
@@ -470,6 +470,7 @@
             "enum": [
               "standard",
               "hosted",
+              "premium_mini",
               "premium"
             ],
             "title": "Tier",
@@ -889,6 +890,7 @@
                 "enum": [
                   "standard",
                   "hosted",
+                  "premium_mini",
                   "premium"
                 ],
                 "type": "string"
@@ -897,7 +899,7 @@
                 "type": "null"
               }
             ],
-            "description": "standard = your agent ($0.05/min) \u00b7 hosted = our assistant ($0.10/min) \u00b7 premium = OpenAI Realtime ($0.25/min). Set once the call connects",
+            "description": "standard = your agent ($0.05/min) \u00b7 hosted = our assistant ($0.10/min) \u00b7 premium_mini = OpenAI Realtime mini ($0.15/min) \u00b7 premium = OpenAI Realtime ($0.25/min). Set once the call connects",
             "title": "Tier"
           },
           "to": {
@@ -5844,6 +5846,7 @@
             "enum": [
               "standard",
               "hosted",
+              "premium_mini",
               "premium"
             ],
             "title": "Tier",
