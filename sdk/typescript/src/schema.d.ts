@@ -1988,12 +1988,12 @@ export interface components {
             ended_at: string | null;
             /**
              * Engine
-             * @description mode_c | hosted_cascaded | openai_realtime | forward
+             * @description mode_c | hosted_cascaded | openai_realtime | openai_realtime_mini | voicemail | forward
              */
             engine: string;
             /**
              * Pool Seconds
-             * @description Included-minute seconds used: billed_seconds x tier ratio (1/2/5)
+             * @description Included-minute seconds used: billed_seconds x tier ratio (standard 1, hosted 2, premium_mini 3, premium 5)
              */
             pool_seconds: number;
             /**
@@ -2007,7 +2007,7 @@ export interface components {
              * Tier
              * @enum {string}
              */
-            tier: "standard" | "hosted" | "premium";
+            tier: "standard" | "hosted" | "premium_mini" | "premium";
         };
         /** BillingSubscription */
         BillingSubscription: {
@@ -2133,9 +2133,9 @@ export interface components {
             summary?: components["schemas"]["CallSummary"] | null;
             /**
              * Tier
-             * @description standard = your agent ($0.05/min) · hosted = our assistant ($0.10/min) · premium = OpenAI Realtime ($0.25/min). Set once the call connects
+             * @description standard = your agent ($0.05/min) · hosted = our assistant ($0.10/min) · premium_mini = OpenAI Realtime mini ($0.15/min) · premium = OpenAI Realtime ($0.25/min). Set once the call connects
              */
-            tier: ("standard" | "hosted" | "premium") | null;
+            tier: ("standard" | "hosted" | "premium_mini" | "premium") | null;
             /** To */
             to: string;
         };
@@ -3845,7 +3845,7 @@ export interface components {
              * Tier
              * @enum {string}
              */
-            tier: "standard" | "hosted" | "premium";
+            tier: "standard" | "hosted" | "premium_mini" | "premium";
         };
         /** TimelineItem */
         TimelineItem: {

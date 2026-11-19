@@ -106,18 +106,22 @@ class BillingSegment(BaseModel):
     ]
     ended_at: Annotated[str | None, Field(title="Ended At")]
     engine: Annotated[
-        str, Field(description="mode_c | hosted_cascaded | openai_realtime | forward", title="Engine")
+        str,
+        Field(
+            description="mode_c | hosted_cascaded | openai_realtime | openai_realtime_mini | voicemail | forward",
+            title="Engine",
+        ),
     ]
     pool_seconds: Annotated[
         int,
         Field(
-            description="Included-minute seconds used: billed_seconds x tier ratio (1/2/5)",
+            description="Included-minute seconds used: billed_seconds x tier ratio (standard 1, hosted 2, premium_mini 3, premium 5)",
             title="Pool Seconds",
         ),
     ]
     seconds: Annotated[int, Field(description="Exact connected seconds in this segment", title="Seconds")]
     started_at: Annotated[str, Field(title="Started At")]
-    tier: Annotated[Literal["standard", "hosted", "premium"], Field(title="Tier")]
+    tier: Annotated[Literal["standard", "hosted", "premium_mini", "premium"], Field(title="Tier")]
 
 
 class BillingSubscription(BaseModel):
@@ -1382,7 +1386,7 @@ class TierUsage(BaseModel):
     price_cents_per_minute: Annotated[int, Field(title="Price Cents Per Minute")]
     ratio: Annotated[int, Field(description="Included-minute seconds used per billed second", title="Ratio")]
     seconds: Annotated[int, Field(description="Exact connected seconds", title="Seconds")]
-    tier: Annotated[Literal["standard", "hosted", "premium"], Field(title="Tier")]
+    tier: Annotated[Literal["standard", "hosted", "premium_mini", "premium"], Field(title="Tier")]
 
 
 class TimelineItem(BaseModel):
@@ -1759,9 +1763,9 @@ class Call(BaseModel):
         Field(description="Written by a model shortly after the call (event call.summary_ready)"),
     ] = None
     tier: Annotated[
-        Literal["standard", "hosted", "premium"] | None,
+        Literal["standard", "hosted", "premium_mini", "premium"] | None,
         Field(
-            description="standard = your agent ($0.05/min) · hosted = our assistant ($0.10/min) · premium = OpenAI Realtime ($0.25/min). Set once the call connects",
+            description="standard = your agent ($0.05/min) · hosted = our assistant ($0.10/min) · premium_mini = OpenAI Realtime mini ($0.15/min) · premium = OpenAI Realtime ($0.25/min). Set once the call connects",
             title="Tier",
         ),
     ]
