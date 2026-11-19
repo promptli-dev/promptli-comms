@@ -3,13 +3,22 @@
   "name": "com.promptli/comms",
   "title": "Promptli Comms",
   "description": "Email, phone calls and SMS for AI agents: one agent identity with an inbox and a phone number.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "websiteUrl": "https://promptli.com/comms",
   "icons": [
     {
-      "src": "https://promptli.com/promptli-logo.svg",
+      "src": "https://promptli.com/promptli-comms-icon.svg",
       "mimeType": "image/svg+xml",
-      "sizes": ["any"]
+      "sizes": [
+        "any"
+      ]
+    },
+    {
+      "src": "https://promptli.com/promptli-comms-icon-512.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "512x512"
+      ]
     }
   ],
   "remotes": [
